@@ -1,0 +1,111 @@
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 28px;
+  }
+
+  .tagline {
+    margin: 4px 0 0;
+    opacity: 0.7;
+    font-size: 15px;
+  }
+}
+
+.capture {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 32px;
+
+  textarea {
+    font: inherit;
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border, #444);
+    background: var(--accent-bg, rgba(255, 255, 255, 0.05));
+    color: inherit;
+    resize: vertical;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent, #747bff);
+      outline-offset: 1px;
+    }
+  }
+
+  button {
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent, #747bff);
+    color: #fff;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}
+
+.memory-list {
+  h2 {
+    font-size: 15px;
+    opacity: 0.7;
+    font-weight: 500;
+    margin: 0 0 12px;
+  }
+
+  .empty {
+    opacity: 0.5;
+    text-align: center;
+    padding: 24px 0;
+  }
+}
+
+.memory-card {
+  border: 1px solid var(--border, #444);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  text-align: left;
+
+  p {
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  .memory-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+
+  .delete {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+
+    &:hover {
+      background: rgba(255, 80, 80, 0.2);
+    }
+  }
+}
