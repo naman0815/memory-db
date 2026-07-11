@@ -29,8 +29,16 @@ export interface SaveInput {
 /**
  * Save pipeline: durable local write first (instant), then embedding and
  * enrichment update the row in the background. Media goes to the blobs table.
+ *
+ * onEnriched, if given, fires once background enrichment (tags, category,
+ * eventDate, embedding) actually lands in storage — callers that show a
+ * memories list should re-fetch then, not just after the initial save.
+ * Plain-text notes (no attached file) have no other point where the UI
+ * would naturally refresh again, so without this the list silently goes
+ * stale: it shows the pre-enrichment snapshot until some unrelated action
+ * (like adding another memory) happens to trigger a refetch.
  */
-export async function saveMemory(input: SaveInput): Promise<Memory> {
+export async function saveMemory(input: SaveInput, onEnriched?: () => void): Promise<Memory> {
   const memory: Memory = {
     id: uuid(),
     type: input.type ?? 'note',
@@ -53,7 +61,7 @@ export async function saveMemory(input: SaveInput): Promise<Memory> {
   await storage.addMemory(memory)
   await storage.enqueueOutbox({ id: uuid(), memoryId: memory.id, op: 'upsert', attempts: 0 })
 
-  void finishInBackground(memory)
+  finishInBackground(memory).then(onEnriched)
   return memory
 }
 
@@ -61,12 +69,17 @@ export async function saveMemory(input: SaveInput): Promise<Memory> {
  * Late-arriving extracted text (slow OCR/transcription) — merge it in and
  * re-run embedding + enrichment over the fuller content.
  */
-export async function attachExtractedText(id: string, extractedText: string, caption?: string): Promise<void> {
+export async function attachExtractedText(
+  id: string,
+  extractedText: string,
+  caption?: string,
+  onEnriched?: () => void,
+): Promise<void> {
   const memory = await storage.getMemory(id)
   if (!memory) return
   const updated = { ...memory, extractedText, caption: caption ?? memory.caption }
   await storage.updateMemory(id, { extractedText, caption: updated.caption })
-  void finishInBackground(updated)
+  finishInBackground(updated).then(onEnriched)
 }
 
 async function finishInBackground(memory: Memory): Promise<void> {

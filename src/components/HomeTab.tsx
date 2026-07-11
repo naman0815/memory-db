@@ -68,7 +68,7 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
     const text = input.trim()
     if (!text) return
     setInput('')
-    await saveMemory({ text, category: filter ?? undefined })
+    await saveMemory({ text, category: filter ?? undefined }, onChanged)
     onChanged()
     void flushOutbox()
   }
@@ -89,19 +89,19 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
           ocrImage(file).catch(() => ''),
           captionOptedIn() ? captionImage(file).catch(() => undefined) : Promise.resolve(undefined),
         ])
-        if (text || caption) await attachExtractedText(memory.id, text, caption)
+        if (text || caption) await attachExtractedText(memory.id, text, caption, onChanged)
         onChanged()
       })())
     } else if (isPdf) {
       track(`Extracting ${file.name}…`, (async () => {
         const text = await extractPdfText(file).catch(() => '')
-        if (text) await attachExtractedText(memory.id, text)
+        if (text) await attachExtractedText(memory.id, text, undefined, onChanged)
         onChanged()
       })())
     } else if (isAudio) {
       track('Transcribing audio…', (async () => {
         const text = await transcribeAudio(file).catch(() => '')
-        if (text) await attachExtractedText(memory.id, text)
+        if (text) await attachExtractedText(memory.id, text, undefined, onChanged)
         onChanged()
       })())
     }
