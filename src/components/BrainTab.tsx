@@ -6,6 +6,8 @@ import { iconForCategory } from '../services/categoryIcon'
 import { Icon } from './icons'
 import { MemoryCard } from './MemoryCard'
 
+const ICON_PIN = `${import.meta.env.BASE_URL}icon-pin.png`
+
 export function BrainTab({
   memories,
   onChanged,
@@ -101,7 +103,7 @@ export function BrainTab({
                     className={`brain-pin-btn ${isPinned ? 'pinned' : ''}`}
                     onClick={() => onTogglePin(c.name)}
                   >
-                    <Icon name="pin" size={14} />
+                    <img src={ICON_PIN} alt="" className="pin-icon-img" />
                   </button>
                 </div>
               )

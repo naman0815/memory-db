@@ -3,12 +3,8 @@ import { syncConfigured, signInWithMagicLink, signOut, restoreFromCloud } from '
 import { embedPending } from '../services/retriever'
 import { captionOptedIn, setCaptionOptedIn } from '../services/caption'
 import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
-import {
-  isWebGPUSupported,
-  hasOptedIn,
-  setOptedIn,
-  type LoadProgress,
-} from '../services/generator'
+import { isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
+import { Toggle } from './Toggle'
 
 export function SettingsTab({
   signedInAs,
@@ -48,23 +44,23 @@ export function SettingsTab({
       try {
         await enableLock()
         setLockEnabled(true)
-        setLockStatus('Face ID lock enabled — you\'ll be asked to unlock next time you open the app.')
+        setLockStatus("You're all set — Face ID will ask next time you open the app.")
       } catch (err) {
-        setLockStatus(`Couldn't enable Face ID: ${(err as Error).message}`)
+        setLockStatus(`Couldn't turn this on: ${(err as Error).message}`)
       }
     } else {
       disableLock()
       setLockEnabled(false)
-      setLockStatus('Face ID lock disabled.')
+      setLockStatus('Face ID lock turned off.')
     }
   }
 
   async function handleSignIn() {
     try {
       await signInWithMagicLink(email.trim())
-      setStatus(`Magic link sent to ${email.trim()} — open it on this device.`)
+      setStatus(`Check ${email.trim()} for a sign-in link, then open it on this device.`)
     } catch (err) {
-      setStatus(`Sign-in failed: ${(err as Error).message}`)
+      setStatus(`Couldn't send that link: ${(err as Error).message}`)
     }
   }
 
@@ -75,26 +71,27 @@ export function SettingsTab({
       const count = await restoreFromCloud()
       onChanged()
       if (count > 0) {
-        setStatus(`Restored ${count} memories. Rebuilding search index…`)
+        setStatus(`Restoring ${count} memories…`)
         await embedPending()
-        setStatus(`Restored ${count} memories. Search index ready.`)
+        setStatus(`Restored ${count} memories.`)
       } else {
-        setStatus('Nothing new to restore — local store already has everything.')
+        setStatus("You're already up to date — nothing new to restore.")
       }
     } catch (err) {
-      setStatus(`Restore failed: ${(err as Error).message}`)
+      setStatus(`Restore didn't work: ${(err as Error).message}`)
     } finally {
       setRestoring(false)
     }
   }
 
   return (
-    <section className="backup">
+    <div className="home">
       <div className="home-section-head">
         <h2>Your name</h2>
       </div>
-      <div className="capture">
+      <div className="settings-card">
         <input
+          className="settings-name-input"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -107,23 +104,32 @@ export function SettingsTab({
         <h2>Smart answers</h2>
       </div>
       {!isWebGPUSupported() ? (
-        <p className="llm-note">Needs WebGPU (Safari 26+ / Chrome) — showing best-matching memories instead.</p>
+        <p className="settings-hint">
+          Your browser can't run smart answers, so you'll just see the best-matching memories instead — that
+          still works fine.
+        </p>
       ) : llmState === 'loading' ? (
-        <div className="llm-banner">
-          <p>{loadProgress?.text ?? 'Preparing AI model…'}</p>
+        <div className="settings-card">
+          <p className="settings-progress-label">{loadProgress?.text ?? 'Getting things ready…'}</p>
           <progress value={loadProgress?.progress ?? 0} max={1} />
         </div>
       ) : (
-        <label className="llm-note" style={{ textAlign: 'left', display: 'block' }}>
-          <input
-            type="checkbox"
+        <label className="settings-card toggle-row">
+          <div className="toggle-text">
+            <div className="toggle-label">Write short answers</div>
+            <div className="toggle-desc">
+              Instead of a list of matches, get a short written answer. Downloads a small model once and runs
+              entirely on this device.
+            </div>
+          </div>
+          <Toggle
+            ariaLabel="Write short answers"
             checked={hasOptedIn()}
-            onChange={(e) => {
-              setOptedIn(e.target.checked)
-              if (e.target.checked) onEnableLlm()
+            onChange={(checked) => {
+              setOptedIn(checked)
+              if (checked) onEnableLlm()
             }}
-          />{' '}
-          Enable AI-generated answers (one-time small model download; runs fully on this device)
+          />
         </label>
       )}
 
@@ -131,14 +137,14 @@ export function SettingsTab({
         <h2>Backup</h2>
       </div>
       {!syncConfigured && (
-        <p className="empty">
-          Backup isn't configured. Create a free Supabase project, run <code>supabase/schema.sql</code>{' '}
-          in its SQL editor, and set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>.
+        <p className="settings-hint">
+          Backup isn't set up yet. Once it is, your memories are safely copied to your own private cloud
+          storage automatically.
         </p>
       )}
       {syncConfigured && !signedInAs && (
-        <div className="capture">
-          <p className="empty">Sign in to back up your memories.</p>
+        <div className="settings-card">
+          <p className="settings-card-note">Sign in to start backing up your memories.</p>
           <input
             type="email"
             value={email}
@@ -146,15 +152,15 @@ export function SettingsTab({
             placeholder="you@example.com"
           />
           <button onClick={handleSignIn} disabled={!email.trim()}>
-            Send magic link
+            Send sign-in link
           </button>
         </div>
       )}
       {syncConfigured && signedInAs && (
-        <div className="capture">
-          <p className="empty">
-            Signed in as {signedInAs}. New memories back up automatically (text + metadata; media files stay
-            on-device for now).
+        <div className="settings-card">
+          <p className="settings-card-note">
+            Signed in as {signedInAs}. New memories back up automatically. Photos, PDFs, and audio stay on
+            this device for now — everything else is backed up.
           </p>
           <button onClick={handleRestore} disabled={restoring}>
             {restoring ? 'Restoring…' : 'Restore from backup'}
@@ -170,41 +176,48 @@ export function SettingsTab({
           </button>
         </div>
       )}
-      {status && <p className="empty">{status}</p>}
+      {status && <p className="settings-hint">{status}</p>}
 
       <div className="home-section-head">
         <h2>Photos</h2>
       </div>
-      <div className="capture">
-        <label className="llm-note" style={{ textAlign: 'left' }}>
-          <input
-            type="checkbox"
-            checked={captions}
-            onChange={(e) => {
-              setCaptions(e.target.checked)
-              setCaptionOptedIn(e.target.checked)
-            }}
-          />{' '}
-          Auto-caption images (one-time ~250MB model download; makes photos searchable by what's in them)
-        </label>
-      </div>
+      <label className="settings-card toggle-row">
+        <div className="toggle-text">
+          <div className="toggle-label">Describe photos automatically</div>
+          <div className="toggle-desc">
+            So you can find a photo by what's in it, not just by what you typed. One-time ~250MB download.
+          </div>
+        </div>
+        <Toggle
+          ariaLabel="Describe photos automatically"
+          checked={captions}
+          onChange={(checked) => {
+            setCaptions(checked)
+            setCaptionOptedIn(checked)
+          }}
+        />
+      </label>
 
       <div className="home-section-head">
         <h2>Privacy</h2>
       </div>
-      <div className="capture">
-        {biometricAvailable ? (
-          <label className="llm-note" style={{ textAlign: 'left' }}>
-            <input type="checkbox" checked={lockEnabled} onChange={(e) => toggleLock(e.target.checked)} /> Lock
-            app with Face ID / Touch ID (gates opening the app; does not encrypt stored data)
-          </label>
-        ) : (
-          <p className="llm-note">Face ID / Touch ID lock isn't available on this device or browser.</p>
-        )}
-        {lockStatus && <p className="empty">{lockStatus}</p>}
-      </div>
+      {biometricAvailable ? (
+        <label className="settings-card toggle-row">
+          <div className="toggle-text">
+            <div className="toggle-label">Require Face ID to open</div>
+            <div className="toggle-desc">
+              Asks for Face ID or Touch ID before you can use the app. This locks the screen — it doesn't
+              encrypt what's stored.
+            </div>
+          </div>
+          <Toggle ariaLabel="Require Face ID to open" checked={lockEnabled} onChange={toggleLock} />
+        </label>
+      ) : (
+        <p className="settings-hint">Face ID isn't available on this device or browser.</p>
+      )}
+      {lockStatus && <p className="settings-hint">{lockStatus}</p>}
 
-      {storageUsage && <p className="llm-note">{storageUsage}</p>}
-    </section>
+      {storageUsage && <p className="settings-hint">{storageUsage}</p>}
+    </div>
   )
 }

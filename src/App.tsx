@@ -12,8 +12,9 @@ import { HomeTab } from './components/HomeTab'
 import { BrainTab } from './components/BrainTab'
 import { SettingsTab } from './components/SettingsTab'
 import { LockScreen } from './components/LockScreen'
-import { Icon } from './components/icons'
 import './App.css'
+
+const ICON_SETTINGS = `${import.meta.env.BASE_URL}icon-settings.png`
 
 const RELOCK_AFTER_MS = 2 * 60 * 1000
 
@@ -125,7 +126,7 @@ function App() {
           aria-label="Settings"
           onClick={() => setTab('settings')}
         >
-          <Icon name="settings" size={22} />
+          <img src={ICON_SETTINGS} alt="" className="nav-icon-img" />
         </button>
       </nav>
 
