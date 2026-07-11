@@ -265,6 +265,31 @@
   appearance: none;
 }
 
+.lock-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 80vh;
+  text-align: center;
+
+  button {
+    font-size: 15px;
+    padding: 10px 24px;
+    border-radius: 999px;
+    border: none;
+    background: var(--accent);
+    color: var(--text);
+    cursor: pointer;
+    margin-top: 8px;
+
+    &:disabled {
+      opacity: 0.6;
+    }
+  }
+}
+
 .offline-banner {
   background: rgba(255, 180, 60, 0.15);
   border: 1px solid rgba(255, 180, 60, 0.4);

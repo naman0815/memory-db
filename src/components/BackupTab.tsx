@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { syncConfigured, signInWithMagicLink, signOut, restoreFromCloud } from '../services/sync'
 import { embedPending } from '../services/retriever'
 import { captionOptedIn, setCaptionOptedIn } from '../services/caption'
+import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
 
 export function BackupTab({
   signedInAs,
@@ -16,6 +17,30 @@ export function BackupTab({
   const [status, setStatus] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [captions, setCaptions] = useState(captionOptedIn())
+  const [biometricAvailable, setBiometricAvailable] = useState(false)
+  const [lockEnabled, setLockEnabled] = useState(isLockEnabled())
+  const [lockStatus, setLockStatus] = useState<string | null>(null)
+
+  useEffect(() => {
+    isBiometricAvailable().then(setBiometricAvailable)
+  }, [])
+
+  async function toggleLock(next: boolean) {
+    setLockStatus(null)
+    if (next) {
+      try {
+        await enableLock()
+        setLockEnabled(true)
+        setLockStatus('Face ID lock enabled — you\'ll be asked to unlock next time you open the app.')
+      } catch (err) {
+        setLockStatus(`Couldn't enable Face ID: ${(err as Error).message}`)
+      }
+    } else {
+      disableLock()
+      setLockEnabled(false)
+      setLockStatus('Face ID lock disabled.')
+    }
+  }
 
   async function handleSignIn() {
     try {
@@ -100,6 +125,18 @@ export function BackupTab({
           Auto-caption images (one-time ~250MB model download; makes photos searchable by what's in
           them)
         </label>
+      </div>
+
+      <div className="capture" style={{ marginTop: 16 }}>
+        {biometricAvailable ? (
+          <label className="llm-note" style={{ textAlign: 'left' }}>
+            <input type="checkbox" checked={lockEnabled} onChange={(e) => toggleLock(e.target.checked)} /> Lock
+            app with Face ID / Touch ID (gates opening the app; does not encrypt stored data)
+          </label>
+        ) : (
+          <p className="llm-note">Face ID / Touch ID lock isn't available on this device or browser.</p>
+        )}
+        {lockStatus && <p className="empty">{lockStatus}</p>}
       </div>
 
       {storageUsage && <p className="llm-note">{storageUsage}</p>}

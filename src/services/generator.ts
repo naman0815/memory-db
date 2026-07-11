@@ -1,6 +1,9 @@
 import type { RetrievedMemory } from '../types'
 
-export const LLM_MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC'
+// Qwen2.5-1.5B (~1GB+ runtime) was crashing Safari tabs, especially on phone —
+// its per-tab memory ceiling is much tighter than desktop Chrome. 0.5B is
+// ~4x lighter and loads in a fraction of the time.
+export const LLM_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
 
 export type GeneratorStatus = 'unsupported' | 'not-downloaded' | 'loading' | 'ready' | 'error'
 
@@ -56,6 +59,12 @@ export function isEngineReady(): boolean {
   return engine !== null
 }
 
+/** Drop the engine so the next call reloads fresh — call after any generation error. */
+function resetEngine(): void {
+  engine = null
+  loadingPromise = null
+}
+
 /**
  * Generate an answer grounded strictly in the retrieved memories.
  * Streams tokens to onToken; returns the full answer.
@@ -82,29 +91,36 @@ export async function generateAnswer(
     .map((r, i) => `${i + 1}. [${new Date(r.memory.createdAt).toLocaleDateString()}] ${r.memory.text}`)
     .join('\n')
 
-  const chunks = await engine.chat.completions.create({
-    stream: true,
-    temperature: 0.2,
-    max_tokens: 256,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You answer questions using ONLY the stored memories provided. ' +
-          'Be brief and direct. If the memories do not contain the answer, ' +
-          'say exactly: "I don\'t have that stored." Never invent information.',
-      },
-      {
-        role: 'user',
-        content: `Stored memories:\n${context}\n\nQuestion: ${question}`,
-      },
-    ],
-  })
+  try {
+    const chunks = await engine.chat.completions.create({
+      stream: true,
+      temperature: 0.2,
+      max_tokens: 256,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You answer questions using ONLY the stored memories provided. ' +
+            'Be brief and direct. If the memories do not contain the answer, ' +
+            'say exactly: "I don\'t have that stored." Never invent information.',
+        },
+        {
+          role: 'user',
+          content: `Stored memories:\n${context}\n\nQuestion: ${question}`,
+        },
+      ],
+    })
 
-  let full = ''
-  for await (const chunk of chunks) {
-    full += chunk.choices[0]?.delta?.content ?? ''
-    onToken(full)
+    let full = ''
+    for await (const chunk of chunks) {
+      full += chunk.choices[0]?.delta?.content ?? ''
+      onToken(full)
+    }
+    return full
+  } catch (err) {
+    // WebGPU device-lost / WASM OOM surfaces here rather than crashing the
+    // tab — drop the engine so the next question reloads it fresh.
+    resetEngine()
+    throw err
   }
-  return full
 }

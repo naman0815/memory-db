@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { RetrievedMemory } from '../types'
 import { search } from '../services/retriever'
 import { isEngineReady, generateAnswer, isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
@@ -17,6 +17,14 @@ export function AskTab({
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState<RetrievedMemory[] | null>(null)
   const [answer, setAnswer] = useState<string | null>(null)
+  const [genError, setGenError] = useState<string | null>(null)
+
+  // Silent (re)load on tab open — only if the user already opted in on a
+  // previous visit. First-ever opt-in still requires the explicit button below.
+  useEffect(() => {
+    if (llmState === 'off' && isWebGPUSupported() && hasOptedIn()) onEnableLlm()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleAsk() {
     const q = question.trim()
@@ -24,11 +32,21 @@ export function AskTab({
     setSearching(true)
     setResults(null)
     setAnswer(null)
+    setGenError(null)
     try {
       const retrieved = await search(q)
       setResults(retrieved)
       if (isEngineReady() && retrieved.length > 0) {
-        await generateAnswer(q, retrieved, setAnswer)
+        try {
+          await generateAnswer(q, retrieved, setAnswer)
+        } catch {
+          // Model crashed mid-generation (WebGPU/WASM memory pressure) — the
+          // matched memories above are already shown, so fail soft here and
+          // silently reload the engine in the background for next time.
+          setAnswer(null)
+          setGenError('Smart answer failed on this device — showing matched memories instead.')
+          onEnableLlm()
+        }
       }
     } finally {
       setSearching(false)
@@ -58,7 +76,7 @@ export function AskTab({
       {llmState === 'off' && isWebGPUSupported() && !hasOptedIn() && (
         <div className="llm-banner">
           <p>
-            Enable smart answers — downloads a ~1GB AI model once, then answers run fully on this
+            Enable smart answers — downloads a small AI model once, then answers run fully on this
             device. Wi-Fi recommended.
           </p>
           <button
@@ -82,6 +100,7 @@ export function AskTab({
           Smart answers need WebGPU (Safari 26+ / Chrome). Showing best-matching memories instead.
         </p>
       )}
+      {genError && <p className="llm-note">{genError}</p>}
 
       {answer !== null && (
         <div className="answer-card">
