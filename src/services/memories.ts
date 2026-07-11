@@ -21,6 +21,7 @@ export interface SaveInput {
   url?: string
   fields?: Record<string, string>
   tags?: string[]
+  category?: string
   /** OCR/PDF text/transcript if already extracted by the caller */
   extractedText?: string
 }
@@ -36,6 +37,7 @@ export async function saveMemory(input: SaveInput): Promise<Memory> {
     text: input.text.trim(),
     createdAt: Date.now(),
     tags: input.tags,
+    category: input.category,
     url: input.url,
     fields: input.fields,
     extractedText: input.extractedText,

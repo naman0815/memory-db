@@ -111,5 +111,13 @@ export async function enrichMemory(memory: Memory): Promise<Partial<Memory>> {
   if (!memory.tags?.length) {
     changes.tags = (await llmTags(searchable)) ?? heuristicTags(searchable)
   }
+  if (!memory.category) {
+    const tags = changes.tags ?? memory.tags
+    changes.category = tags?.[0] ? titleCase(tags[0]) : 'General'
+  }
   return changes
+}
+
+function titleCase(s: string): string {
+  return s.replace(/(^|[\s-])\w/g, (c) => c.toUpperCase())
 }

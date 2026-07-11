@@ -63,6 +63,7 @@ export async function flushOutbox(): Promise<void> {
         // Everything except the raw blob (media backup needs Supabase Storage — future)
         meta: {
           type: memory.type,
+          category: memory.category ?? null,
           url: memory.url ?? null,
           fields: memory.fields ?? null,
           extractedText: memory.extractedText ?? null,
@@ -106,6 +107,7 @@ export async function restoreFromCloud(): Promise<number> {
       text: row.text,
       createdAt: new Date(row.created_at).getTime(),
       tags: row.tags ?? undefined,
+      category: meta.category ?? undefined,
       url: meta.url ?? undefined,
       fields: meta.fields ?? undefined,
       extractedText: meta.extractedText ?? undefined,

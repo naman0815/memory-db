@@ -42,6 +42,11 @@ class MemoryDatabase extends Dexie {
           if (!m.type) m.type = 'note'
         }),
       )
+    this.version(3).stores({
+      memories: 'id, createdAt, synced, type, eventDate, category',
+      syncOutbox: 'id, memoryId',
+      blobs: 'id',
+    })
   }
 }
 

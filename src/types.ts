@@ -25,6 +25,8 @@ export interface Memory {
   text: string
   createdAt: number
   tags?: string[]
+  /** Freeform user topic/folder shown in Home ("Bali Trip 2026", "Health"); distinct from type/tags */
+  category?: string
   /** 384-dim vector over embedText(); undefined until embedded */
   embedding?: Float32Array
   /** Model that produced the embedding — mismatch triggers re-embed */

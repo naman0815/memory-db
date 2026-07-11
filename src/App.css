@@ -1,3 +1,270 @@
+/* Home tab — ported from Memory DB.dc.html design mock */
+.home {
+  text-align: left;
+  padding-bottom: 16px;
+}
+
+.home-greet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.home-asterisk {
+  font-size: 26px;
+}
+
+.home-title {
+  font-size: 34px;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 10px;
+
+  h2 {
+    font-size: 17px;
+    font-weight: 400;
+    margin: 0;
+    white-space: nowrap;
+  }
+}
+
+.home-view-all {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--text-muted-2);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 5px 12px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.home-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.home-tile,
+.home-hcard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--text);
+  appearance: none;
+}
+
+.home-tile.active {
+  background: var(--accent-active-bg);
+  border-color: var(--accent);
+}
+
+.home-tile-icon,
+.home-tile-icon-outline {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  color: #3a3327;
+}
+
+.home-tile-icon-outline.active {
+  background: var(--accent-bg);
+}
+
+.home-tile-text {
+  min-width: 0;
+}
+
+.home-tile-title {
+  font-size: 16px;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-tile-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.home-hscroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.home-hcard {
+  flex: 0 0 auto;
+  width: 210px;
+  cursor: default;
+}
+
+.home-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-entry-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 16px 12px;
+}
+
+.home-entry-text {
+  font-size: 15.5px;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.home-entry-rule {
+  height: 1px;
+  background: var(--border-strong);
+  margin-bottom: 8px;
+}
+
+.home-entry-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.home-delete {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.home-empty {
+  opacity: 0.55;
+  text-align: center;
+  padding: 18px 0;
+  font-size: 14px;
+}
+
+.home-processing {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-top: 10px;
+}
+
+.home-bottom-spacer {
+  height: 90px;
+}
+
+.home-composer-wrap {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  padding: 0 16px 26px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.home-composer {
+  pointer-events: auto;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 14px 14px 10px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.home-composer-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--text);
+  padding: 2px 2px 12px;
+  box-sizing: border-box;
+}
+
+.home-composer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-composer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-round-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #3a3327;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  appearance: none;
+}
+
+.home-round-btn.recording {
+  color: #b5482f;
+}
+
+.home-send-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--send-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  appearance: none;
+}
+
 .offline-banner {
   background: rgba(255, 180, 60, 0.15);
   border: 1px solid rgba(255, 180, 60, 0.4);
@@ -12,6 +279,9 @@
   max-width: 640px;
   margin: 0 auto;
   padding: 24px 16px 64px;
+  background: var(--bg);
+  min-height: 100svh;
+  box-sizing: border-box;
 }
 
 header {
@@ -46,9 +316,9 @@ header {
     cursor: pointer;
 
     &.active {
-      background: var(--accent, #747bff);
-      border-color: var(--accent, #747bff);
-      color: #fff;
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--text);
     }
   }
 }
@@ -75,8 +345,8 @@ header {
     padding: 8px 16px;
     border-radius: 8px;
     border: none;
-    background: var(--accent, #747bff);
-    color: #fff;
+    background: var(--accent);
+    color: var(--text);
     cursor: pointer;
   }
 
@@ -214,7 +484,7 @@ header {
     padding: 8px 10px;
     border-radius: 8px;
     border: 1px solid var(--border, #444);
-    background: var(--accent-bg, rgba(255, 255, 255, 0.05));
+    background: var(--card-bg);
     color: inherit;
   }
 }
@@ -243,7 +513,7 @@ header {
     padding: 10px 12px;
     border-radius: 10px;
     border: 1px solid var(--border, #444);
-    background: var(--accent-bg, rgba(255, 255, 255, 0.05));
+    background: var(--card-bg);
     color: inherit;
   }
 
@@ -259,7 +529,7 @@ header {
     padding: 12px;
     border-radius: 10px;
     border: 1px solid var(--border, #444);
-    background: var(--accent-bg, rgba(255, 255, 255, 0.05));
+    background: var(--card-bg);
     color: inherit;
     resize: vertical;
 
@@ -274,8 +544,8 @@ header {
     padding: 10px;
     border-radius: 10px;
     border: none;
-    background: var(--accent, #747bff);
-    color: #fff;
+    background: var(--accent);
+    color: var(--text);
     cursor: pointer;
 
     &:disabled {

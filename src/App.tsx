@@ -5,16 +5,16 @@ import { preloadEmbedder } from './services/embedder'
 import { isWebGPUSupported, hasOptedIn, loadEngine, type LoadProgress } from './services/generator'
 import { syncConfigured, getSession, getSupabase, flushOutbox, startAutoSync } from './services/sync'
 import { notifyImminentEvents } from './services/digest'
-import { RememberTab } from './components/RememberTab'
+import { HomeTab } from './components/HomeTab'
 import { AskTab } from './components/AskTab'
 import { BrowseTab } from './components/BrowseTab'
 import { BackupTab } from './components/BackupTab'
 import './App.css'
 
-type Tab = 'remember' | 'ask' | 'browse' | 'backup'
+type Tab = 'home' | 'ask' | 'browse' | 'backup'
 
 function App() {
-  const [tab, setTab] = useState<Tab>('remember')
+  const [tab, setTab] = useState<Tab>('home')
   const [memories, setMemories] = useState<Memory[]>([])
   const [online, setOnline] = useState(navigator.onLine)
   const [storageUsage, setStorageUsage] = useState<string | null>(null)
@@ -72,18 +72,20 @@ function App() {
           Offline — everything still works; backup resumes when you reconnect.
         </div>
       )}
-      <header>
-        <h1>Memory DB</h1>
-        <nav className="tabs">
-          {(['remember', 'ask', 'browse', 'backup'] as const).map((t) => (
-            <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
-              {t[0].toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </nav>
-      </header>
+      {tab !== 'home' && (
+        <header>
+          <h1>Memory DB</h1>
+        </header>
+      )}
+      <nav className="tabs">
+        {(['home', 'ask', 'browse', 'backup'] as const).map((t) => (
+          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
+            {t[0].toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </nav>
 
-      {tab === 'remember' && <RememberTab memories={memories} onChanged={refresh} />}
+      {tab === 'home' && <HomeTab memories={memories} onChanged={refresh} />}
       {tab === 'ask' && (
         <AskTab llmState={llmState} loadProgress={loadProgress} onEnableLlm={startEngine} />
       )}
