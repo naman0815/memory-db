@@ -1,4 +1,5 @@
 import { createWorker, type Worker } from 'tesseract.js'
+import * as chrono from 'chrono-node'
 
 let workerPromise: Promise<Worker> | null = null
 
@@ -28,6 +29,14 @@ const CONFIDENCE_THRESHOLD = 60
  * surrounding letters) becomes "Sun, July", which then parses as a totally
  * different, wrong date instead of failing loudly. A whole kept line is
  * never partially eaten.
+ *
+ * A whole date/time line can still legitimately score below the confidence
+ * bar (smaller or differently-styled text near ticket art tends to) — that
+ * observed in practice: a ticket's "Sun, 19 July" line was dropped entirely,
+ * leaving only a bare "8:10 AM" behind, which then resolved to the wrong
+ * date downstream. So a line chrono can independently parse a date/time
+ * out of is always kept regardless of its confidence score — losing a date
+ * is a worse failure than keeping one extra borderline line.
  */
 export async function ocrImage(blob: Blob): Promise<string> {
   const worker = await getWorker()
@@ -38,7 +47,8 @@ export async function ocrImage(blob: Blob): Promise<string> {
     for (const paragraph of block.paragraphs) {
       for (const line of paragraph.lines) {
         const text = line.text.trim()
-        if (line.confidence >= CONFIDENCE_THRESHOLD && /[a-zA-Z0-9]{2,}/.test(text)) {
+        const looksLikeDateOrTime = chrono.parse(text).length > 0
+        if ((line.confidence >= CONFIDENCE_THRESHOLD || looksLikeDateOrTime) && /[a-zA-Z0-9]{2,}/.test(text)) {
           lines.push(text)
         }
       }
