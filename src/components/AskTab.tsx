@@ -5,6 +5,7 @@ import {
   isEngineReady,
   generateAnswer,
   isDirectHit,
+  buildDirectAnswer,
   isWebGPUSupported,
   hasOptedIn,
   setOptedIn,
@@ -52,10 +53,11 @@ export function AskTab({
         setAnswer(NOT_REMEMBERED)
       } else if (isDirectHit(retrieved)) {
         // A small local model is unreliable at "quoting" numbers/codes without
-        // swapping digits — when one memory clearly dominates, show it
-        // directly instead of risking a paraphrase.
-        const top = retrieved[0].memory
-        setAnswer(top.text || top.caption || top.extractedText || null)
+        // swapping digits, or keeps reframing a personal record as generic
+        // public trivia — when one memory clearly dominates, build the
+        // answer deterministically from its own fields instead of asking
+        // the model to paraphrase it.
+        setAnswer(buildDirectAnswer(retrieved[0].memory))
       } else if (isEngineReady() && retrieved.length > 0) {
         try {
           await generateAnswer(q, retrieved, setAnswer)

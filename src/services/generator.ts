@@ -1,4 +1,4 @@
-import type { RetrievedMemory } from '../types'
+import type { Memory, RetrievedMemory } from '../types'
 import { embedText } from '../types'
 
 // Qwen2.5-1.5B (~1GB+ runtime) was crashing Safari tabs, especially on phone —
@@ -70,15 +70,37 @@ function resetEngine(): void {
  * True when one memory clearly dominates the results — the case where a
  * direct lookup answer (the memory itself) is safer than letting a small
  * local LLM paraphrase it. Small models (0.5B class) are prone to swapping
- * digits in codes/numbers when asked to "answer" rather than quote.
+ * digits in codes/numbers, or reframing a personal record as generic public
+ * trivia, when asked to "answer" rather than quote.
+ *
+ * Single-result threshold matches retriever.ts's own SCORE_THRESHOLD (0.35)
+ * — search() already filtered to relevant results, so if it's the only one
+ * returned there's no reason to demand extra confidence before trusting it.
  */
 export function isDirectHit(retrieved: RetrievedMemory[]): boolean {
   if (retrieved.length === 0) return false
-  if (retrieved.length === 1) return retrieved[0].score >= 0.5
+  if (retrieved.length === 1) return retrieved[0].score >= 0.35
   return retrieved[0].score >= 0.55 && retrieved[0].score - retrieved[1].score >= 0.1
 }
 
 export const NOT_REMEMBERED = "I don't have that stored."
+
+/**
+ * Deterministic, personalized answer built directly from a memory's own
+ * fields — no LLM involved. Used for direct hits so there's zero risk of a
+ * small model reframing a personal ticket/note as generic public knowledge
+ * (e.g. "The Odyssey was released on..." instead of "Your show is on...").
+ */
+export function buildDirectAnswer(memory: Memory): string {
+  if (memory.eventDate) {
+    const dt = new Date(memory.eventDate)
+    const dateStr = dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    const timeStr = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    const subject = memory.category && memory.category !== 'General' ? memory.category : memory.type
+    return `Your ${subject} is on ${dateStr} at ${timeStr}.`
+  }
+  return memory.text || memory.caption || memory.extractedText?.slice(0, 300) || NOT_REMEMBERED
+}
 
 const NUMBER_RE = /\d{2,}/g
 const STOPWORDS = new Set(
@@ -134,7 +156,12 @@ export async function generateAnswer(
   if (!engine) throw new Error('LLM engine not loaded')
 
   const context = retrieved
-    .map((r, i) => `${i + 1}. [${new Date(r.memory.createdAt).toLocaleDateString()}] ${embedText(r.memory)}`)
+    .map((r, i) => {
+      const eventLine = r.memory.eventDate
+        ? ` | Event/show time: ${new Date(r.memory.eventDate).toLocaleString()}`
+        : ''
+      return `${i + 1}. [saved ${new Date(r.memory.createdAt).toLocaleDateString()}]${eventLine} ${embedText(r.memory)}`
+    })
     .join('\n')
 
   try {
@@ -147,11 +174,14 @@ export async function generateAnswer(
           role: 'system',
           content:
             'The stored memories below are your ONLY source of truth — you have no other ' +
-            'knowledge of this person or their life. Numbers, codes, dates, and names MUST be ' +
-            'copied character-for-character from the memories — never alter, guess, autocomplete, ' +
-            'or invent a single digit or fact. If a memory contains the answer, quote the relevant ' +
-            `part directly. If the memories do not answer the question, say EXACTLY: "${NOT_REMEMBERED}" ` +
-            'and nothing else. Be brief.',
+            'knowledge of this person, their life, or the wider world, including public facts ' +
+            'like movie release dates, celebrity info, or general trivia. Never answer as an ' +
+            'encyclopedia. Always speak directly to the user about THEIR OWN record, using ' +
+            '"you"/"your" (e.g. "Your show is on..." not "X was released on..."). If a memory ' +
+            'has an event/show time, state the date AND time together. Numbers, codes, dates, ' +
+            'and names MUST be copied character-for-character from the memories — never alter, ' +
+            'guess, autocomplete, or invent a single digit or fact. If the memories do not answer ' +
+            `the question, say EXACTLY: "${NOT_REMEMBERED}" and nothing else. Be brief.`,
         },
         {
           role: 'user',
