@@ -186,7 +186,7 @@
 }
 
 .home-bottom-spacer {
-  height: 90px;
+  height: 65px;
 }
 
 .home-composer-wrap {
@@ -196,7 +196,7 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  padding: 0 16px 26px;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
   box-sizing: border-box;
   pointer-events: none;
 }
@@ -305,7 +305,7 @@
   min-width: 0;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: calc(16px + env(safe-area-inset-top)) 16px 24px;
   background: var(--bg);
   min-height: 100svh;
   box-sizing: border-box;
