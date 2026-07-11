@@ -213,34 +213,28 @@ export function HomeTab({
   return (
     <div className="home">
       {digest && (
-        <div className="llm-banner">
+        <div className="digest-banner">
           <p>
-            📬 Weekly digest: {digest.recentCount} new {digest.recentCount === 1 ? 'memory' : 'memories'} this
-            week ({digest.totalCount} total).
-            {digest.topTags.length > 0 && ` Trending: ${digest.topTags.map((t) => `#${t}`).join(' ')}.`}
-            {digest.upcoming.length > 0 &&
-              ` ${digest.upcoming.length} upcoming ${digest.upcoming.length === 1 ? 'event' : 'events'}.`}
+            {digest.recentCount} new {digest.recentCount === 1 ? 'memory' : 'memories'} this week ·{' '}
+            {digest.totalCount} total
           </p>
-          <button className="mic" onClick={() => setDigest(null)}>
-            Dismiss
-          </button>
+          <button onClick={() => setDigest(null)}>Dismiss</button>
         </div>
       )}
 
       {upcoming.length > 0 && (
         <section className="memory-list" style={{ marginBottom: 20 }}>
-          <h2>📅 Upcoming</h2>
+          <h2>Upcoming</h2>
           {upcoming.slice(0, 5).map((m) => (
-            <p key={m.id} className="upcoming-item">
-              <strong>{new Date(m.eventDate!).toLocaleString()}</strong> —{' '}
-              {m.text || m.extractedText?.slice(0, 60) || m.type}
-            </p>
+            <div key={m.id} className="upcoming-item">
+              <strong>{new Date(m.eventDate!).toLocaleString()}</strong>
+              <span>{m.text || m.extractedText?.slice(0, 40) || m.type}</span>
+            </div>
           ))}
         </section>
       )}
 
       <div className="home-greet">
-        <span className="home-asterisk">✳</span>
         <h1 className="home-title">Hello{userName ? `, ${userName}` : ''}</h1>
       </div>
 
@@ -345,10 +339,10 @@ export function HomeTab({
         </>
       )}
 
-      {asking && <p className="home-processing">🔎 Searching your memories…</p>}
+      {asking && <p className="home-processing">Searching your memories…</p>}
       {processing.map((label) => (
         <p key={label} className="home-processing">
-          ⏳ {label}
+          {label}
         </p>
       ))}
 

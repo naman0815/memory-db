@@ -16,8 +16,7 @@ export function LockScreen({ onUnlocked }: { onUnlocked: () => void }) {
 
   return (
     <div className="lock-screen">
-      <span className="home-asterisk">✳</span>
-      <h1 className="home-title">Memory DB</h1>
+      <h1 className="home-title">Brain 2</h1>
       <p className="llm-note">Locked with Face ID</p>
       <button onClick={attempt} disabled={verifying}>
         {verifying ? 'Verifying…' : 'Unlock'}

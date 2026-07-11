@@ -101,7 +101,7 @@ export function BrainTab({
                     className={`brain-pin-btn ${isPinned ? 'pinned' : ''}`}
                     onClick={() => onTogglePin(c.name)}
                   >
-                    📌
+                    <Icon name="pin" size={14} />
                   </button>
                 </div>
               )

@@ -36,7 +36,7 @@ export function MemoryCard({
     <div className="memory-card">
       <div className="memory-meta">
         <span className="type-badge">{memory.type}</span>
-        {memory.eventDate && <span>📅 {new Date(memory.eventDate).toLocaleString()}</span>}
+        {memory.eventDate && <span>{new Date(memory.eventDate).toLocaleString()}</span>}
         {score !== undefined && score > 0 && <span className="score">{Math.round(score * 100)}% match</span>}
       </div>
 
@@ -49,7 +49,7 @@ export function MemoryCard({
       )}
 
       {memory.text && <p>{memory.text}</p>}
-      {memory.caption && <p className="caption">🖼 {memory.caption}</p>}
+      {memory.caption && <p className="caption">{memory.caption}</p>}
       {memory.url && (
         <a href={memory.url} target="_blank" rel="noreferrer">
           {memory.url}
@@ -66,7 +66,7 @@ export function MemoryCard({
         </dl>
       )}
       {memory.entities?.amounts && memory.entities.amounts.length > 0 && (
-        <p className="caption">💰 {memory.entities.amounts.join(', ')}</p>
+        <p className="caption">Amount: {memory.entities.amounts.join(', ')}</p>
       )}
       {memory.extractedText && (
         <details>
