@@ -45,6 +45,8 @@ function App() {
   const [dictating, setDictating] = useState(false)
   const [dictation, setDictation] = useState<DictationHandle | null>(null)
 
+  const [online, setOnline] = useState(navigator.onLine)
+  const [storageUsage, setStorageUsage] = useState<string | null>(null)
   const [signedInAs, setSignedInAs] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [backupStatus, setBackupStatus] = useState<string | null>(null)
@@ -66,6 +68,14 @@ function App() {
     preloadEmbedder()
     refresh()
     if (isWebGPUSupported() && hasOptedIn()) startEngine()
+    const goOnline = () => setOnline(true)
+    const goOffline = () => setOnline(false)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    navigator.storage?.estimate?.().then((est) => {
+      if (est.usage != null) setStorageUsage(`${(est.usage / 1024 / 1024).toFixed(0)} MB used locally`)
+    })
+    let unsubscribeAuth: (() => void) | undefined
     if (syncConfigured) {
       startAutoSync()
       getSession().then((s) => setSignedInAs(s?.user.email ?? null))
@@ -73,7 +83,12 @@ function App() {
         setSignedInAs(session?.user.email ?? null)
         if (session) void flushOutbox()
       })
-      return () => sub.subscription.unsubscribe()
+      unsubscribeAuth = () => sub.subscription.unsubscribe()
+    }
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+      unsubscribeAuth?.()
     }
   }, [refresh, startEngine])
 
@@ -167,6 +182,7 @@ function App() {
 
   return (
     <div className="app">
+      {!online && <div className="offline-banner">Offline — everything still works; backup resumes when you reconnect.</div>}
       <header>
         <h1>Memory DB</h1>
         <nav className="tabs">
@@ -346,6 +362,7 @@ function App() {
             </div>
           )}
           {backupStatus && <p className="empty">{backupStatus}</p>}
+          {storageUsage && <p className="llm-note">{storageUsage}</p>}
         </section>
       )}
     </div>
