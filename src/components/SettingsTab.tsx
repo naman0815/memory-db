@@ -85,7 +85,7 @@ export function SettingsTab({
   }
 
   return (
-    <div className="home">
+    <div className="home tab-page">
       <div className="home-section-head">
         <h2>Your name</h2>
       </div>

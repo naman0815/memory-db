@@ -1,3 +1,78 @@
+/* ---- Motion: mount transitions + tap feedback ----
+   Two keyframes: .tab-page fades/rises a whole screen in on tab switch;
+   .card-in does the same for individual cards, but since it's a CSS
+   animation (not a JS-triggered one) it only plays when the DOM node is
+   actually created — React's keyed lists mean existing items just update
+   props without remounting, so this naturally animates only genuinely
+   new content, never the whole list on an unrelated re-render. */
+@keyframes tabIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-page {
+  animation: tabIn var(--dur-base) var(--ease) both;
+}
+
+.home-entry-card,
+.home-tile,
+.home-hcard,
+.memory-card,
+.answer-card,
+.digest-banner,
+.settings-card {
+  animation: cardIn var(--dur-fast) var(--ease) both;
+}
+
+/* Tap feedback — every interactive control gets the same quiet press
+   response instead of popping straight from idle to result. */
+button,
+.linkish,
+.tag {
+  transition:
+    transform var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+button:active:not(:disabled),
+.linkish:active,
+.tag:active {
+  transform: scale(0.96);
+  opacity: 0.8;
+}
+
+.home-tile,
+.brain-tile-main {
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.home-tile:active,
+.brain-tile-main:active {
+  transform: scale(0.97);
+}
+
 /* Home tab — ported from Memory DB.dc.html design mock */
 .home {
   text-align: left;
@@ -574,6 +649,16 @@ header {
   margin-bottom: 8px;
 }
 
+img.memory-media {
+  /* Reserves space before the image loads so the card doesn't jump —
+     real photos vary, but a fixed aspect-ratio + cover is far closer than
+     collapsing to 0 height and popping open once the file arrives. */
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--border);
+}
+
 .type-badge {
   text-transform: uppercase;
   font-size: 10px;
@@ -931,7 +1016,9 @@ header {
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform 0.15s ease;
+  transition:
+    transform var(--dur-fast) var(--ease),
+    width var(--dur-fast) var(--ease);
 }
 
 .toggle-switch input:checked + .toggle-track {
@@ -940,6 +1027,16 @@ header {
 
 .toggle-switch input:checked + .toggle-track .toggle-thumb {
   transform: translateX(18px);
+}
+
+/* A little squish on press — thumb widens slightly toward the drag
+   direction, same trick iOS uses, before settling into its new state. */
+.toggle-switch input:active + .toggle-track .toggle-thumb {
+  width: 24px;
+}
+
+.toggle-switch input:checked:active + .toggle-track .toggle-thumb {
+  transform: translateX(14px);
 }
 
 .toggle-switch input:focus-visible + .toggle-track {

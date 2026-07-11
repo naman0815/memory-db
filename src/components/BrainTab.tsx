@@ -70,7 +70,7 @@ export function BrainTab({
   }
 
   return (
-    <>
+    <div className="tab-page">
       {categories.length > 0 && (
         <>
           <div className="home-section-head">
@@ -148,6 +148,6 @@ export function BrainTab({
         ))}
         {filtered.length === 0 && <p className="empty">Nothing matches.</p>}
       </section>
-    </>
+    </div>
   )
 }

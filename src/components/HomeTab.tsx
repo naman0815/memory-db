@@ -211,7 +211,7 @@ export function HomeTab({
   }
 
   return (
-    <div className="home">
+    <div className="home tab-page">
       {digest && (
         <div className="digest-banner">
           <p>
