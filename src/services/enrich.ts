@@ -41,7 +41,13 @@ export function extractEventDate(text: string, referenceDate = new Date()): numb
   const results = chrono.parse(text, referenceDate, { forwardDate: true })
   if (!results.length) return undefined
 
-  const dateResult = results.find((r) => r.start.isCertain('day') && r.start.isCertain('month')) ?? results[0]
+  // Ranked fallback: a full day+month is best; a month alone (e.g. OCR
+  // dropped just the day number) still beats a bare time-only match, which
+  // is the one most likely to silently resolve to the wrong date entirely.
+  const dateResult =
+    results.find((r) => r.start.isCertain('day') && r.start.isCertain('month')) ??
+    results.find((r) => r.start.isCertain('month')) ??
+    results[0]
   const timeResult = results.find((r) => r.start.isCertain('hour'))
 
   const date = dateResult.start.date()

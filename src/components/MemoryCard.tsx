@@ -65,6 +65,9 @@ export function MemoryCard({
           ))}
         </dl>
       )}
+      {memory.entities?.amounts && memory.entities.amounts.length > 0 && (
+        <p className="caption">💰 {memory.entities.amounts.join(', ')}</p>
+      )}
       {memory.extractedText && (
         <details>
           <summary>Extracted text</summary>
