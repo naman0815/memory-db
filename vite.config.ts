@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Served from https://naman0815.github.io/memory-db/
+  base: '/memory-db/',
   plugins: [
     react(),
     VitePWA({
@@ -15,7 +17,8 @@ export default defineConfig({
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/memory-db/',
+        scope: '/memory-db/',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
