@@ -4,6 +4,7 @@ import { embedText } from '../types'
 import { embed, cosineSimilarity } from './embedder'
 import { storage } from './storage'
 import { isEngineReady, quickComplete } from './generator'
+import { extractTicketFields } from './ticketFields'
 
 const AMOUNT_RE = /(?:₹|rs\.?|inr|\$|usd|€|eur)\s?[\d,]+(?:\.\d{1,2})?|[\d,]+(?:\.\d{1,2})?\s?(?:rupees|dollars|euros)/gi
 const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.]+/g
@@ -133,6 +134,10 @@ export async function enrichMemory(memory: Memory): Promise<Partial<Memory>> {
   const eventDate = extractEventDate(searchable, new Date(memory.createdAt))
   if (eventDate) changes.eventDate = eventDate
   changes.type = categorize(searchable, memory.type)
+  if (!memory.fields && memory.extractedText) {
+    const fields = extractTicketFields(memory.extractedText)
+    if (fields) changes.fields = fields
+  }
   if (!memory.tags?.length) {
     changes.tags = (await llmTags(searchable)) ?? heuristicTags(searchable)
   }
