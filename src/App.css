@@ -1,29 +1,27 @@
 /* ---- Motion: mount transitions + tap feedback ----
-   Two keyframes: .tab-page fades/rises a whole screen in on tab switch;
-   .card-in does the same for individual cards, but since it's a CSS
-   animation (not a JS-triggered one) it only plays when the DOM node is
-   actually created — React's keyed lists mean existing items just update
-   props without remounting, so this naturally animates only genuinely
-   new content, never the whole list on an unrelated re-render. */
+   Opacity-only, deliberately: animating `transform` on an element that
+   also has `border-radius` (i.e. nearly everything here — cards, tiles,
+   buttons) triggers a well-known iOS Safari bug where the element flashes
+   solid black for a frame while Safari fails to composite the rounded,
+   transformed layer before it's painted. Doesn't reproduce in desktop
+   testing, only on real iOS hardware — opacity-only animation avoids the
+   GPU layer promotion path that causes it, at the cost of the subtle
+   "rise" motion. Correctness over flourish. */
 @keyframes tabIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 @keyframes cardIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -41,13 +39,14 @@
   animation: cardIn var(--dur-fast) var(--ease) both;
 }
 
-/* Tap feedback — every interactive control gets the same quiet press
-   response instead of popping straight from idle to result. */
+/* Tap feedback — opacity-only for the same reason as the mount
+   animations above; no transform on rounded elements. */
 button,
 .linkish,
-.tag {
+.tag,
+.home-tile,
+.brain-tile-main {
   transition:
-    transform var(--dur-fast) var(--ease),
     opacity var(--dur-fast) var(--ease),
     background var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease);
@@ -55,22 +54,10 @@ button,
 
 button:active:not(:disabled),
 .linkish:active,
-.tag:active {
-  transform: scale(0.96);
-  opacity: 0.8;
-}
-
-.home-tile,
-.brain-tile-main {
-  transition:
-    transform var(--dur-fast) var(--ease),
-    background var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease);
-}
-
+.tag:active,
 .home-tile:active,
 .brain-tile-main:active {
-  transform: scale(0.97);
+  opacity: 0.65;
 }
 
 /* Home tab — ported from Memory DB.dc.html design mock */
