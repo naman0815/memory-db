@@ -1,4 +1,5 @@
 import { storage } from './storage'
+import { embed, EMBEDDING_MODEL } from './embedder'
 import type { Memory } from '../types'
 
 /**
@@ -14,6 +15,16 @@ export async function saveMemory(text: string, tags?: string[]): Promise<Memory>
     synced: false,
   }
   await storage.addMemory(memory)
+  // Embed in the background — the local write is already durable, and
+  // embedPending() in the retriever catches anything that fails here.
+  embed(memory.text)
+    .then((vector) =>
+      storage.updateMemory(memory.id, {
+        embedding: vector,
+        embeddingModelVersion: EMBEDDING_MODEL,
+      }),
+    )
+    .catch(() => {})
   await storage.enqueueOutbox({
     id: crypto.randomUUID(),
     memoryId: memory.id,

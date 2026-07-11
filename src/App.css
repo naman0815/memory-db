@@ -20,6 +20,33 @@ header {
   }
 }
 
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+
+  button {
+    font-size: 15px;
+    padding: 6px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border, #444);
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    &.active {
+      background: var(--accent, #747bff);
+      border-color: var(--accent, #747bff);
+      color: #fff;
+    }
+  }
+}
+
+.score {
+  font-variant-numeric: tabular-nums;
+}
+
 .capture {
   display: flex;
   flex-direction: column;
