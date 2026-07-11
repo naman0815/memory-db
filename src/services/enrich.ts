@@ -27,10 +27,29 @@ export function extractEntities(text: string): ExtractedEntities {
   return entities
 }
 
-/** First future-or-recent parsed date becomes the memory's eventDate. */
+/**
+ * Parses the memory's eventDate. Picking chrono's first match by text
+ * position is wrong for OCR'd tickets: a bare time like "8:10 AM" often
+ * appears before the actual date line ("Sun, 19 July") in the extracted
+ * text, and chrono resolves a bare time relative to referenceDate — giving
+ * "the next 8:10 AM after this was saved" instead of the ticket's real date.
+ * So: prefer the match that actually specifies day+month for the date, and
+ * separately borrow the hour/minute from a bare-time match if the
+ * date-bearing match didn't include its own time.
+ */
 export function extractEventDate(text: string, referenceDate = new Date()): number | undefined {
   const results = chrono.parse(text, referenceDate, { forwardDate: true })
-  return results.length ? results[0].start.date().getTime() : undefined
+  if (!results.length) return undefined
+
+  const dateResult = results.find((r) => r.start.isCertain('day') && r.start.isCertain('month')) ?? results[0]
+  const timeResult = results.find((r) => r.start.isCertain('hour'))
+
+  const date = dateResult.start.date()
+  if (timeResult && timeResult !== dateResult && !dateResult.start.isCertain('hour')) {
+    const t = timeResult.start.date()
+    date.setHours(t.getHours(), t.getMinutes(), 0, 0)
+  }
+  return date.getTime()
 }
 
 const TICKET_WORDS = /\b(ticket|seat|screen|showtime|admit|pnr|boarding|gate|booking\s?id|confirmation)\b/i
