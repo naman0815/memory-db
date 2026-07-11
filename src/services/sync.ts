@@ -60,6 +60,17 @@ export async function flushOutbox(): Promise<void> {
         created_at: new Date(memory.createdAt).toISOString(),
         tags: memory.tags ?? null,
         deleted_at: memory.deletedAt ? new Date(memory.deletedAt).toISOString() : null,
+        // Everything except the raw blob (media backup needs Supabase Storage — future)
+        meta: {
+          type: memory.type,
+          url: memory.url ?? null,
+          fields: memory.fields ?? null,
+          extractedText: memory.extractedText ?? null,
+          caption: memory.caption ?? null,
+          eventDate: memory.eventDate ?? null,
+          entities: memory.entities ?? null,
+          mimeType: memory.mimeType ?? null,
+        },
       })
       if (error) {
         await storage.updateOutbox(entry.id, {
@@ -81,18 +92,26 @@ export async function restoreFromCloud(): Promise<number> {
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('memories')
-    .select('id, text, created_at, tags, deleted_at')
+    .select('id, text, created_at, tags, deleted_at, meta')
     .is('deleted_at', null)
   if (error) throw error
 
   let restored = 0
   for (const row of data ?? []) {
     if (await storage.getMemory(row.id)) continue
+    const meta = row.meta ?? {}
     const memory: Memory = {
       id: row.id,
+      type: meta.type ?? 'note',
       text: row.text,
       createdAt: new Date(row.created_at).getTime(),
       tags: row.tags ?? undefined,
+      url: meta.url ?? undefined,
+      fields: meta.fields ?? undefined,
+      extractedText: meta.extractedText ?? undefined,
+      caption: meta.caption ?? undefined,
+      eventDate: meta.eventDate ?? undefined,
+      entities: meta.entities ?? undefined,
       synced: true,
     }
     await storage.addMemory(memory)

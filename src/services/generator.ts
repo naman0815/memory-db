@@ -60,6 +60,17 @@ export function isEngineReady(): boolean {
  * Generate an answer grounded strictly in the retrieved memories.
  * Streams tokens to onToken; returns the full answer.
  */
+/** One-shot short completion for enrichment tasks (tagging, classification). */
+export async function quickComplete(prompt: string): Promise<string> {
+  if (!engine) throw new Error('LLM engine not loaded')
+  const res = await engine.chat.completions.create({
+    temperature: 0.1,
+    max_tokens: 48,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  return res.choices[0]?.message?.content ?? ''
+}
+
 export async function generateAnswer(
   question: string,
   retrieved: RetrievedMemory[],

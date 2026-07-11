@@ -7,7 +7,9 @@ create table if not exists public.memories (
   text text not null,
   created_at timestamptz not null,
   tags jsonb,
-  deleted_at timestamptz
+  deleted_at timestamptz,
+  -- type, url, fields, extractedText, caption, eventDate, entities, mimeType
+  meta jsonb
 );
 
 alter table public.memories enable row level security;
