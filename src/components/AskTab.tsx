@@ -8,6 +8,7 @@ import {
   isWebGPUSupported,
   hasOptedIn,
   setOptedIn,
+  NOT_REMEMBERED,
   type LoadProgress,
 } from '../services/generator'
 import { MemoryCard } from './MemoryCard'
@@ -44,7 +45,12 @@ export function AskTab({
     try {
       const retrieved = await search(q)
       setResults(retrieved)
-      if (isDirectHit(retrieved)) {
+      if (retrieved.length === 0) {
+        // Explicit, consistent refusal regardless of whether the LLM is even
+        // running — the memory DB is the only source of truth, so nothing
+        // found means saying so, not guessing.
+        setAnswer(NOT_REMEMBERED)
+      } else if (isDirectHit(retrieved)) {
         // A small local model is unreliable at "quoting" numbers/codes without
         // swapping digits — when one memory clearly dominates, show it
         // directly instead of risking a paraphrase.
@@ -124,7 +130,6 @@ export function AskTab({
 
       <section className="memory-list">
         {searching && <p className="empty">Searching your memories…</p>}
-        {results !== null && results.length === 0 && <p className="empty">No matching memories found.</p>}
         {results !== null && results.length > 0 && <h2>Source memories</h2>}
         {results?.map(({ memory, score }) => (
           <MemoryCard key={memory.id} memory={memory} score={score} />

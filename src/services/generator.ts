@@ -78,12 +78,37 @@ export function isDirectHit(retrieved: RetrievedMemory[]): boolean {
   return retrieved[0].score >= 0.55 && retrieved[0].score - retrieved[1].score >= 0.1
 }
 
-const NUMBER_RE = /\d{2,}/g
+export const NOT_REMEMBERED = "I don't have that stored."
 
-/** Reject a generated answer if it contains numbers/codes not present anywhere in the source context. */
-function containsFabricatedNumbers(answer: string, context: string): boolean {
+const NUMBER_RE = /\d{2,}/g
+const STOPWORDS = new Set(
+  'the a an is are was were be been being have has had do does did will would could should may might must can this that these those it its i my me you your he she they them their our we us not no yes with from into onto over under about for and or but if then than'.split(
+    ' ',
+  ),
+)
+
+function contentWords(text: string): string[] {
+  return (text.toLowerCase().match(/[a-z]{4,}/g) ?? []).filter((w) => !STOPWORDS.has(w))
+}
+
+/**
+ * Reject a generated answer unless it's actually grounded in the retrieved
+ * memories: no number/code appears that isn't in the source context, and
+ * the answer's substantive words meaningfully overlap with the context (a
+ * cheap defense against the model answering something unrelated outright).
+ * The refusal string itself always passes.
+ */
+function isGrounded(answer: string, context: string): boolean {
+  if (answer.trim() === NOT_REMEMBERED) return true
+
   const answerNumbers = answer.match(NUMBER_RE) ?? []
-  return answerNumbers.some((n) => !context.includes(n))
+  if (answerNumbers.some((n) => !context.includes(n))) return false
+
+  const lowerContext = context.toLowerCase()
+  const words = contentWords(answer)
+  if (words.length === 0) return true // nothing substantive to check (e.g. "Yes.")
+  const overlap = words.filter((w) => lowerContext.includes(w)).length
+  return overlap / words.length >= 0.5
 }
 
 /**
@@ -121,12 +146,12 @@ export async function generateAnswer(
         {
           role: 'system',
           content:
-            'You answer questions using ONLY the stored memories provided. ' +
-            'Numbers, codes, dates, and names MUST be copied character-for-character ' +
-            'from the memories — never alter, guess, autocomplete, or invent a single digit. ' +
-            'If a memory contains the answer, quote the relevant part directly. ' +
-            'If the memories do not contain the answer, say exactly: "I don\'t have that stored." ' +
-            'Be brief.',
+            'The stored memories below are your ONLY source of truth — you have no other ' +
+            'knowledge of this person or their life. Numbers, codes, dates, and names MUST be ' +
+            'copied character-for-character from the memories — never alter, guess, autocomplete, ' +
+            'or invent a single digit or fact. If a memory contains the answer, quote the relevant ' +
+            `part directly. If the memories do not answer the question, say EXACTLY: "${NOT_REMEMBERED}" ` +
+            'and nothing else. Be brief.',
         },
         {
           role: 'user',
@@ -139,8 +164,8 @@ export async function generateAnswer(
     for await (const chunk of chunks) {
       full += chunk.choices[0]?.delta?.content ?? ''
     }
-    if (containsFabricatedNumbers(full, context)) {
-      throw new Error('Generated answer contained a number not present in source memories')
+    if (!isGrounded(full, context)) {
+      throw new Error('Generated answer was not grounded in the source memories')
     }
     onToken(full)
     return full
