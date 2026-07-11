@@ -1,4 +1,5 @@
 import type { RetrievedMemory } from '../types'
+import { embedText } from '../types'
 
 // Qwen2.5-1.5B (~1GB+ runtime) was crashing Safari tabs, especially on phone —
 // its per-tab memory ceiling is much tighter than desktop Chrome. 0.5B is
@@ -66,6 +67,26 @@ function resetEngine(): void {
 }
 
 /**
+ * True when one memory clearly dominates the results — the case where a
+ * direct lookup answer (the memory itself) is safer than letting a small
+ * local LLM paraphrase it. Small models (0.5B class) are prone to swapping
+ * digits in codes/numbers when asked to "answer" rather than quote.
+ */
+export function isDirectHit(retrieved: RetrievedMemory[]): boolean {
+  if (retrieved.length === 0) return false
+  if (retrieved.length === 1) return retrieved[0].score >= 0.5
+  return retrieved[0].score >= 0.55 && retrieved[0].score - retrieved[1].score >= 0.1
+}
+
+const NUMBER_RE = /\d{2,}/g
+
+/** Reject a generated answer if it contains numbers/codes not present anywhere in the source context. */
+function containsFabricatedNumbers(answer: string, context: string): boolean {
+  const answerNumbers = answer.match(NUMBER_RE) ?? []
+  return answerNumbers.some((n) => !context.includes(n))
+}
+
+/**
  * Generate an answer grounded strictly in the retrieved memories.
  * Streams tokens to onToken; returns the full answer.
  */
@@ -88,21 +109,24 @@ export async function generateAnswer(
   if (!engine) throw new Error('LLM engine not loaded')
 
   const context = retrieved
-    .map((r, i) => `${i + 1}. [${new Date(r.memory.createdAt).toLocaleDateString()}] ${r.memory.text}`)
+    .map((r, i) => `${i + 1}. [${new Date(r.memory.createdAt).toLocaleDateString()}] ${embedText(r.memory)}`)
     .join('\n')
 
   try {
     const chunks = await engine.chat.completions.create({
       stream: true,
-      temperature: 0.2,
-      max_tokens: 256,
+      temperature: 0,
+      max_tokens: 128,
       messages: [
         {
           role: 'system',
           content:
             'You answer questions using ONLY the stored memories provided. ' +
-            'Be brief and direct. If the memories do not contain the answer, ' +
-            'say exactly: "I don\'t have that stored." Never invent information.',
+            'Numbers, codes, dates, and names MUST be copied character-for-character ' +
+            'from the memories — never alter, guess, autocomplete, or invent a single digit. ' +
+            'If a memory contains the answer, quote the relevant part directly. ' +
+            'If the memories do not contain the answer, say exactly: "I don\'t have that stored." ' +
+            'Be brief.',
         },
         {
           role: 'user',
@@ -114,12 +138,16 @@ export async function generateAnswer(
     let full = ''
     for await (const chunk of chunks) {
       full += chunk.choices[0]?.delta?.content ?? ''
-      onToken(full)
     }
+    if (containsFabricatedNumbers(full, context)) {
+      throw new Error('Generated answer contained a number not present in source memories')
+    }
+    onToken(full)
     return full
   } catch (err) {
-    // WebGPU device-lost / WASM OOM surfaces here rather than crashing the
-    // tab — drop the engine so the next question reloads it fresh.
+    // WebGPU device-lost / WASM OOM, or the fabrication guard above, surfaces
+    // here rather than crashing the tab or showing a wrong fact — drop the
+    // engine so the next question reloads it fresh.
     resetEngine()
     throw err
   }

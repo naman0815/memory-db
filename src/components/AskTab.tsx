@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { RetrievedMemory } from '../types'
 import { search } from '../services/retriever'
-import { isEngineReady, generateAnswer, isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
+import {
+  isEngineReady,
+  generateAnswer,
+  isDirectHit,
+  isWebGPUSupported,
+  hasOptedIn,
+  setOptedIn,
+  type LoadProgress,
+} from '../services/generator'
 import { MemoryCard } from './MemoryCard'
 
 export function AskTab({
@@ -36,15 +44,21 @@ export function AskTab({
     try {
       const retrieved = await search(q)
       setResults(retrieved)
-      if (isEngineReady() && retrieved.length > 0) {
+      if (isDirectHit(retrieved)) {
+        // A small local model is unreliable at "quoting" numbers/codes without
+        // swapping digits — when one memory clearly dominates, show it
+        // directly instead of risking a paraphrase.
+        const top = retrieved[0].memory
+        setAnswer(top.text || top.caption || top.extractedText || null)
+      } else if (isEngineReady() && retrieved.length > 0) {
         try {
           await generateAnswer(q, retrieved, setAnswer)
         } catch {
-          // Model crashed mid-generation (WebGPU/WASM memory pressure) — the
-          // matched memories above are already shown, so fail soft here and
-          // silently reload the engine in the background for next time.
+          // Model crashed, or the fabrication guard rejected the answer —
+          // the matched memories above are already shown, so fail soft here
+          // and silently reload the engine in the background for next time.
           setAnswer(null)
-          setGenError('Smart answer failed on this device — showing matched memories instead.')
+          setGenError('Smart answer unavailable — showing matched memories instead.')
           onEnableLlm()
         }
       }
