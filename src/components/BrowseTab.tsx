@@ -54,9 +54,11 @@ export function BrowseTab({ memories, onChanged }: { memories: Memory[]; onChang
       {digest && (
         <div className="llm-banner">
           <p>
-            📬 Weekly digest: {digest.recentCount} new memories this week ({digest.totalCount} total).
+            📬 Weekly digest: {digest.recentCount} new {digest.recentCount === 1 ? 'memory' : 'memories'} this
+            week ({digest.totalCount} total).
             {digest.topTags.length > 0 && ` Trending: ${digest.topTags.map((t) => `#${t}`).join(' ')}.`}
-            {digest.upcoming.length > 0 && ` ${digest.upcoming.length} upcoming events.`}
+            {digest.upcoming.length > 0 &&
+              ` ${digest.upcoming.length} upcoming ${digest.upcoming.length === 1 ? 'event' : 'events'}.`}
           </p>
           <button className="mic" onClick={() => setDigest(null)}>
             Dismiss

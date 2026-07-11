@@ -158,7 +158,9 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
                 </div>
                 <div className="home-tile-text">
                   <div className="home-tile-title">{c.name}</div>
-                  <div className="home-tile-sub">{c.count} entries</div>
+                  <div className="home-tile-sub">
+                    {c.count} {c.count === 1 ? 'entry' : 'entries'}
+                  </div>
                 </div>
               </button>
             ))}
