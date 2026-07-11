@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
-import type { Memory, MemoryType } from '../types'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Memory, MemoryType, RetrievedMemory } from '../types'
 import { saveMemory, attachExtractedText, deleteMemory } from '../services/memories'
 import { flushOutbox } from '../services/sync'
 import { ocrImage } from '../services/ocr'
@@ -8,7 +8,18 @@ import { transcribeAudio } from '../services/audio'
 import { captionOptedIn, captionImage } from '../services/caption'
 import { isSpeechSupported, startDictation, type DictationHandle } from '../services/speech'
 import { iconForCategory } from '../services/categoryIcon'
+import { looksLikeQuestion } from '../services/intent'
+import { search } from '../services/retriever'
+import {
+  isEngineReady,
+  generateAnswer,
+  isDirectHit,
+  buildDirectAnswer,
+  NOT_REMEMBERED,
+} from '../services/generator'
+import { upcomingMemories, buildDigest, digestDue, markDigestShown, type Digest } from '../services/digest'
 import { Icon } from './icons'
+import { MemoryCard } from './MemoryCard'
 
 function fmtDate(ts: number): string {
   const diffH = Math.round((Date.now() - ts) / 3600000)
@@ -21,13 +32,43 @@ function labelOf(m: Memory): string {
   return m.text || m.caption || m.extractedText?.slice(0, 60) || m.type
 }
 
-export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged: () => void }) {
+export function HomeTab({
+  memories,
+  onChanged,
+  pinnedCategories,
+  userName,
+  onEnableLlm,
+}: {
+  memories: Memory[]
+  onChanged: () => void
+  pinnedCategories: string[]
+  userName: string
+  onEnableLlm: () => void
+}) {
   const [filter, setFilter] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [dictating, setDictating] = useState(false)
   const [dictation, setDictation] = useState<DictationHandle | null>(null)
   const [processing, setProcessing] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const [asking, setAsking] = useState(false)
+  const [results, setResults] = useState<RetrievedMemory[] | null>(null)
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [genError, setGenError] = useState<string | null>(null)
+
+  const [digest, setDigest] = useState<Digest | null>(null)
+  const [upcoming, setUpcoming] = useState<Memory[]>([])
+
+  useEffect(() => {
+    upcomingMemories().then(setUpcoming)
+    if (digestDue()) {
+      buildDigest().then((d) => {
+        setDigest(d)
+        markDigestShown()
+      })
+    }
+  }, [memories])
 
   const byCategory = useMemo(() => {
     const groups = new Map<string, Memory[]>()
@@ -39,14 +80,12 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
     return groups
   }, [memories])
 
-  const categories = useMemo(
-    () => [...byCategory.entries()].map(([name, items]) => ({ name, count: items.length })),
-    [byCategory],
-  )
-
   const pinned = useMemo(
-    () => [...categories].sort((a, b) => b.count - a.count).slice(0, 2),
-    [categories],
+    () =>
+      pinnedCategories
+        .filter((name) => byCategory.has(name))
+        .map((name) => ({ name, count: byCategory.get(name)!.length })),
+    [pinnedCategories, byCategory],
   )
 
   const recentThings = useMemo(
@@ -59,18 +98,55 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
     return [...list].sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)
   }, [filter, byCategory, memories])
 
+  const mode = looksLikeQuestion(input) ? 'ask' : 'save'
+
   function track(label: string, work: Promise<void>) {
     setProcessing((p) => [...p, label])
     work.finally(() => setProcessing((p) => p.filter((l) => l !== label)))
   }
 
-  async function handleSave() {
+  function clearAnswer() {
+    setAnswer(null)
+    setResults(null)
+    setGenError(null)
+  }
+
+  async function handleAsk(question: string) {
+    setAsking(true)
+    clearAnswer()
+    try {
+      const retrieved = await search(question)
+      setResults(retrieved)
+      if (retrieved.length === 0) {
+        setAnswer(NOT_REMEMBERED)
+      } else if (isDirectHit(retrieved)) {
+        setAnswer(buildDirectAnswer(retrieved[0].memory))
+      } else if (isEngineReady()) {
+        try {
+          await generateAnswer(question, retrieved, setAnswer)
+        } catch {
+          setAnswer(null)
+          setGenError('Smart answer unavailable — showing matched memories instead.')
+          onEnableLlm()
+        }
+      }
+    } finally {
+      setAsking(false)
+    }
+  }
+
+  async function handleSubmit() {
     const text = input.trim()
     if (!text) return
     setInput('')
-    await saveMemory({ text, category: filter ?? undefined }, onChanged)
-    onChanged()
-    void flushOutbox()
+    if (looksLikeQuestion(text)) {
+      await handleAsk(text)
+    } else {
+      clearAnswer()
+      await saveMemory({ text, category: filter ?? undefined }, onChanged)
+      onChanged()
+      void flushOutbox()
+    }
   }
 
   async function handleFile(file: File) {
@@ -78,6 +154,7 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
     const isPdf = file.type === 'application/pdf'
     const isAudio = file.type.startsWith('audio/')
     const type: MemoryType = isImage ? 'image' : isPdf ? 'pdf' : isAudio ? 'audio' : 'note'
+    clearAnswer()
     const memory = await saveMemory({ text: input.trim(), type, blob: file, category: filter ?? undefined })
     setInput('')
     onChanged()
@@ -135,9 +212,36 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
 
   return (
     <div className="home">
+      {digest && (
+        <div className="llm-banner">
+          <p>
+            📬 Weekly digest: {digest.recentCount} new {digest.recentCount === 1 ? 'memory' : 'memories'} this
+            week ({digest.totalCount} total).
+            {digest.topTags.length > 0 && ` Trending: ${digest.topTags.map((t) => `#${t}`).join(' ')}.`}
+            {digest.upcoming.length > 0 &&
+              ` ${digest.upcoming.length} upcoming ${digest.upcoming.length === 1 ? 'event' : 'events'}.`}
+          </p>
+          <button className="mic" onClick={() => setDigest(null)}>
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {upcoming.length > 0 && (
+        <section className="memory-list" style={{ marginBottom: 20 }}>
+          <h2>📅 Upcoming</h2>
+          {upcoming.slice(0, 5).map((m) => (
+            <p key={m.id} className="upcoming-item">
+              <strong>{new Date(m.eventDate!).toLocaleString()}</strong> —{' '}
+              {m.text || m.extractedText?.slice(0, 60) || m.type}
+            </p>
+          ))}
+        </section>
+      )}
+
       <div className="home-greet">
         <span className="home-asterisk">✳</span>
-        <h1 className="home-title">Hello</h1>
+        <h1 className="home-title">Hello{userName ? `, ${userName}` : ''}</h1>
       </div>
 
       {pinned.length > 0 && (
@@ -189,55 +293,59 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
         </>
       )}
 
-      {categories.length > 0 && (
+      {answer !== null ? (
         <>
           <div className="home-section-head">
-            <h2>My stuff ({categories.length})</h2>
+            <h2>Answer</h2>
+            <button type="button" className="home-view-all" onClick={clearAnswer}>
+              Back
+            </button>
           </div>
-          <div className="home-grid2">
-            {categories.map((c) => (
-              <button
-                key={c.name}
-                type="button"
-                className={`home-tile ${filter === c.name ? 'active' : ''}`}
-                onClick={() => setFilter(filter === c.name ? null : c.name)}
-              >
-                <div className={`home-tile-icon-outline ${filter === c.name ? 'active' : ''}`}>
-                  <Icon name={iconForCategory(c.name)} />
-                </div>
-                <div className="home-tile-text">
-                  <div className="home-tile-title">{c.name}</div>
-                </div>
-              </button>
+          <div className="answer-card">
+            <p>{answer}</p>
+          </div>
+          {genError && <p className="llm-note">{genError}</p>}
+          <section className="memory-list">
+            {results !== null && results.length > 0 && <h2>Source memories</h2>}
+            {results?.map(({ memory, score }) => (
+              <MemoryCard key={memory.id} memory={memory} score={score} />
             ))}
+          </section>
+        </>
+      ) : (
+        <>
+          <div className="home-section-head">
+            <h2>{filter ? `${filter} (${entries.length})` : `Recent entries (${entries.length})`}</h2>
+            {filter && (
+              <button type="button" className="home-view-all" onClick={() => setFilter(null)}>
+                Clear
+              </button>
+            )}
+          </div>
+          <div className="home-entry-list">
+            {entries.map((m) => (
+              <div key={m.id} className="home-entry-card">
+                <p className="home-entry-text">{labelOf(m)}</p>
+                <div className="home-entry-rule" />
+                <div className="home-entry-meta">
+                  <span>{fmtDate(m.createdAt)}</span>
+                  <button
+                    type="button"
+                    aria-label="Delete"
+                    className="home-delete"
+                    onClick={() => handleDelete(m.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))}
+            {entries.length === 0 && <p className="home-empty">Nothing here yet.</p>}
           </div>
         </>
       )}
 
-      <div className="home-section-head">
-        <h2>{filter ? `${filter} (${entries.length})` : `Recent entries (${entries.length})`}</h2>
-        {filter && (
-          <button type="button" className="home-view-all" onClick={() => setFilter(null)}>
-            Clear
-          </button>
-        )}
-      </div>
-      <div className="home-entry-list">
-        {entries.map((m) => (
-          <div key={m.id} className="home-entry-card">
-            <p className="home-entry-text">{labelOf(m)}</p>
-            <div className="home-entry-rule" />
-            <div className="home-entry-meta">
-              <span>{fmtDate(m.createdAt)}</span>
-              <button type="button" aria-label="Delete" className="home-delete" onClick={() => handleDelete(m.id)}>
-                ×
-              </button>
-            </div>
-          </div>
-        ))}
-        {entries.length === 0 && <p className="home-empty">Nothing here yet.</p>}
-      </div>
-
+      {asking && <p className="home-processing">🔎 Searching your memories…</p>}
       {processing.map((label) => (
         <p key={label} className="home-processing">
           ⏳ {label}
@@ -255,10 +363,10 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
-                handleSave()
+                handleSubmit()
               }
             }}
-            placeholder="What's on your mind?"
+            placeholder="What's on your mind? (or ask a question)"
           />
           <div className="home-composer-row">
             <button
@@ -280,8 +388,13 @@ export function HomeTab({ memories, onChanged }: { memories: Memory[]; onChanged
                   <Icon name="mic" />
                 </button>
               )}
-              <button type="button" aria-label="Send" className="home-send-btn" onClick={handleSave}>
-                <Icon name="send" />
+              <button
+                type="button"
+                className={`home-mode-btn ${mode}`}
+                onClick={handleSubmit}
+                disabled={!input.trim()}
+              >
+                {mode === 'ask' ? 'Ask' : 'Save'}
               </button>
             </div>
           </div>

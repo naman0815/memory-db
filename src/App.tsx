@@ -2,20 +2,21 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import type { Memory } from './types'
 import { listMemories, requestPersistentStorage } from './services/memories'
 import { preloadEmbedder } from './services/embedder'
-import { isWebGPUSupported, loadEngine, type LoadProgress } from './services/generator'
+import { isWebGPUSupported, loadEngine, hasOptedIn, type LoadProgress } from './services/generator'
 import { syncConfigured, getSession, getSupabase, flushOutbox, startAutoSync } from './services/sync'
 import { notifyImminentEvents } from './services/digest'
 import { isLockEnabled } from './services/auth'
+import { getPinnedCategories, togglePinnedCategory } from './services/pins'
+import { getUserName, setUserName } from './services/profile'
 import { HomeTab } from './components/HomeTab'
-import { AskTab } from './components/AskTab'
-import { BrowseTab } from './components/BrowseTab'
-import { BackupTab } from './components/BackupTab'
+import { BrainTab } from './components/BrainTab'
+import { SettingsTab } from './components/SettingsTab'
 import { LockScreen } from './components/LockScreen'
 import './App.css'
 
 const RELOCK_AFTER_MS = 2 * 60 * 1000
 
-type Tab = 'home' | 'ask' | 'browse' | 'backup'
+type Tab = 'home' | 'brain' | 'settings'
 
 function App() {
   const [tab, setTab] = useState<Tab>('home')
@@ -23,8 +24,8 @@ function App() {
   const [online, setOnline] = useState(navigator.onLine)
   const [storageUsage, setStorageUsage] = useState<string | null>(null)
   const [signedInAs, setSignedInAs] = useState<string | null>(null)
-  // Loading itself is deferred to AskTab's mount — this only decides whether
-  // Ask should auto-start it (silently, from cache) the first time it's opened.
+  const [pinnedCategories, setPinnedCategories] = useState<string[]>(() => getPinnedCategories())
+  const [userName, setUserNameState] = useState(() => getUserName())
   const [llmState, setLlmState] = useState<'unsupported' | 'off' | 'loading' | 'ready'>(() =>
     !isWebGPUSupported() ? 'unsupported' : 'off',
   )
@@ -43,14 +44,23 @@ function App() {
       .catch(() => setLlmState('off'))
   }, [])
 
+  function handleTogglePin(category: string) {
+    setPinnedCategories((current) => togglePinnedCategory(category, current))
+  }
+
+  function handleNameChange(name: string) {
+    setUserName(name)
+    setUserNameState(name.trim())
+  }
+
   useEffect(() => {
     requestPersistentStorage()
     preloadEmbedder()
     refresh()
     void notifyImminentEvents()
-    // LLM load is deferred to AskTab's own mount — starting it eagerly here
-    // added memory pressure on every screen, not just Ask, and contributed
-    // to tab crashes on constrained devices (Safari on phone especially).
+    // Silent — no loading UI is shown outside Settings. Only kicks in if the
+    // user already opted in on a previous visit.
+    if (isWebGPUSupported() && hasOptedIn()) startEngine()
     const goOnline = () => setOnline(true)
     const goOffline = () => setOnline(false)
     window.addEventListener('online', goOnline)
@@ -82,7 +92,7 @@ function App() {
       document.removeEventListener('visibilitychange', onVisibility)
       unsubscribeAuth?.()
     }
-  }, [refresh])
+  }, [refresh, startEngine])
 
   if (locked) {
     return (
@@ -99,26 +109,53 @@ function App() {
           Offline — everything still works; backup resumes when you reconnect.
         </div>
       )}
-      {tab !== 'home' && (
-        <header>
-          <h1>Memory DB</h1>
-        </header>
-      )}
-      <nav className="tabs">
-        {(['home', 'ask', 'browse', 'backup'] as const).map((t) => (
-          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
-            {t[0].toUpperCase() + t.slice(1)}
+
+      <nav className="main-nav">
+        <div className="main-nav-left">
+          <button className={tab === 'home' ? 'active' : ''} onClick={() => setTab('home')}>
+            Home
           </button>
-        ))}
+          <button className={tab === 'brain' ? 'active' : ''} onClick={() => setTab('brain')}>
+            Brain
+          </button>
+        </div>
+        <button
+          className={`main-nav-settings ${tab === 'settings' ? 'active' : ''}`}
+          aria-label="Settings"
+          onClick={() => setTab('settings')}
+        >
+          ⚙️
+        </button>
       </nav>
 
-      {tab === 'home' && <HomeTab memories={memories} onChanged={refresh} />}
-      {tab === 'ask' && (
-        <AskTab llmState={llmState} loadProgress={loadProgress} onEnableLlm={startEngine} />
+      {tab === 'home' && (
+        <HomeTab
+          memories={memories}
+          onChanged={refresh}
+          pinnedCategories={pinnedCategories}
+          userName={userName}
+          onEnableLlm={startEngine}
+        />
       )}
-      {tab === 'browse' && <BrowseTab memories={memories} onChanged={refresh} />}
-      {tab === 'backup' && (
-        <BackupTab signedInAs={signedInAs} storageUsage={storageUsage} onChanged={refresh} />
+      {tab === 'brain' && (
+        <BrainTab
+          memories={memories}
+          onChanged={refresh}
+          pinnedCategories={pinnedCategories}
+          onTogglePin={handleTogglePin}
+        />
+      )}
+      {tab === 'settings' && (
+        <SettingsTab
+          signedInAs={signedInAs}
+          storageUsage={storageUsage}
+          onChanged={refresh}
+          userName={userName}
+          onNameChange={handleNameChange}
+          llmState={llmState}
+          loadProgress={loadProgress}
+          onEnableLlm={startEngine}
+        />
       )}
     </div>
   )

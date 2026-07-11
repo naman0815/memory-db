@@ -3,16 +3,33 @@ import { syncConfigured, signInWithMagicLink, signOut, restoreFromCloud } from '
 import { embedPending } from '../services/retriever'
 import { captionOptedIn, setCaptionOptedIn } from '../services/caption'
 import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
+import {
+  isWebGPUSupported,
+  hasOptedIn,
+  setOptedIn,
+  type LoadProgress,
+} from '../services/generator'
 
-export function BackupTab({
+export function SettingsTab({
   signedInAs,
   storageUsage,
   onChanged,
+  userName,
+  onNameChange,
+  llmState,
+  loadProgress,
+  onEnableLlm,
 }: {
   signedInAs: string | null
   storageUsage: string | null
   onChanged: () => void
+  userName: string
+  onNameChange: (name: string) => void
+  llmState: 'unsupported' | 'off' | 'loading' | 'ready'
+  loadProgress: LoadProgress | null
+  onEnableLlm: () => void
 }) {
+  const [name, setName] = useState(userName)
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
@@ -73,6 +90,46 @@ export function BackupTab({
 
   return (
     <section className="backup">
+      <div className="home-section-head">
+        <h2>Your name</h2>
+      </div>
+      <div className="capture">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => onNameChange(name)}
+          placeholder="What should we call you?"
+        />
+      </div>
+
+      <div className="home-section-head">
+        <h2>Smart answers</h2>
+      </div>
+      {!isWebGPUSupported() ? (
+        <p className="llm-note">Needs WebGPU (Safari 26+ / Chrome) — showing best-matching memories instead.</p>
+      ) : llmState === 'loading' ? (
+        <div className="llm-banner">
+          <p>{loadProgress?.text ?? 'Preparing AI model…'}</p>
+          <progress value={loadProgress?.progress ?? 0} max={1} />
+        </div>
+      ) : (
+        <label className="llm-note" style={{ textAlign: 'left', display: 'block' }}>
+          <input
+            type="checkbox"
+            checked={hasOptedIn()}
+            onChange={(e) => {
+              setOptedIn(e.target.checked)
+              if (e.target.checked) onEnableLlm()
+            }}
+          />{' '}
+          Enable AI-generated answers (one-time small model download; runs fully on this device)
+        </label>
+      )}
+
+      <div className="home-section-head">
+        <h2>Backup</h2>
+      </div>
       {!syncConfigured && (
         <p className="empty">
           Backup isn't configured. Create a free Supabase project, run <code>supabase/schema.sql</code>{' '}
@@ -95,7 +152,10 @@ export function BackupTab({
       )}
       {syncConfigured && signedInAs && (
         <div className="capture">
-          <p className="empty">Signed in as {signedInAs}. New memories back up automatically (text + metadata; media files stay on-device for now).</p>
+          <p className="empty">
+            Signed in as {signedInAs}. New memories back up automatically (text + metadata; media files stay
+            on-device for now).
+          </p>
           <button onClick={handleRestore} disabled={restoring}>
             {restoring ? 'Restoring…' : 'Restore from backup'}
           </button>
@@ -112,7 +172,10 @@ export function BackupTab({
       )}
       {status && <p className="empty">{status}</p>}
 
-      <div className="capture" style={{ marginTop: 24 }}>
+      <div className="home-section-head">
+        <h2>Photos</h2>
+      </div>
+      <div className="capture">
         <label className="llm-note" style={{ textAlign: 'left' }}>
           <input
             type="checkbox"
@@ -122,12 +185,14 @@ export function BackupTab({
               setCaptionOptedIn(e.target.checked)
             }}
           />{' '}
-          Auto-caption images (one-time ~250MB model download; makes photos searchable by what's in
-          them)
+          Auto-caption images (one-time ~250MB model download; makes photos searchable by what's in them)
         </label>
       </div>
 
-      <div className="capture" style={{ marginTop: 16 }}>
+      <div className="home-section-head">
+        <h2>Privacy</h2>
+      </div>
+      <div className="capture">
         {biometricAvailable ? (
           <label className="llm-note" style={{ textAlign: 'left' }}>
             <input type="checkbox" checked={lockEnabled} onChange={(e) => toggleLock(e.target.checked)} /> Lock

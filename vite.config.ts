@@ -4,21 +4,21 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Served from https://naman0815.github.io/memory-db/
-  base: '/memory-db/',
+  // Served from https://naman0815.github.io/brain-2/
+  base: '/brain-2/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Memory DB',
-        short_name: 'Memory',
+        name: 'Brain 2',
+        short_name: 'Brain 2',
         description: 'Personal memory store with local AI retrieval',
         theme_color: '#1a1a2e',
         background_color: '#1a1a2e',
         display: 'standalone',
-        start_url: '/memory-db/',
-        scope: '/memory-db/',
+        start_url: '/brain-2/',
+        scope: '/brain-2/',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
