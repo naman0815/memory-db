@@ -23,8 +23,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,png,svg,woff2,wasm}'],
+        // The ONNX WASM runtime (~22MB) must precache so embedding works offline
+        maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
         runtimeCaching: [
           {
             // transformers.js model + tokenizer files from Hugging Face CDN

@@ -3,6 +3,15 @@ import type { Memory, RetrievedMemory } from './types'
 import { saveMemory, deleteMemory, listMemories, requestPersistentStorage } from './services/memories'
 import { preloadEmbedder } from './services/embedder'
 import { search } from './services/retriever'
+import {
+  isWebGPUSupported,
+  hasOptedIn,
+  setOptedIn,
+  loadEngine,
+  isEngineReady,
+  generateAnswer,
+  type LoadProgress,
+} from './services/generator'
 import './App.css'
 
 type Tab = 'remember' | 'ask'
@@ -16,6 +25,18 @@ function App() {
   const [question, setQuestion] = useState('')
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState<RetrievedMemory[] | null>(null)
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [llmState, setLlmState] = useState<'unsupported' | 'off' | 'loading' | 'ready'>(
+    () => (!isWebGPUSupported() ? 'unsupported' : hasOptedIn() ? 'loading' : 'off'),
+  )
+  const [loadProgress, setLoadProgress] = useState<LoadProgress | null>(null)
+
+  const startEngine = useCallback(() => {
+    setLlmState('loading')
+    loadEngine(setLoadProgress)
+      .then(() => setLlmState('ready'))
+      .catch(() => setLlmState('off'))
+  }, [])
 
   const refresh = useCallback(async () => {
     setMemories(await listMemories())
@@ -25,7 +46,8 @@ function App() {
     requestPersistentStorage()
     preloadEmbedder()
     refresh()
-  }, [refresh])
+    if (isWebGPUSupported() && hasOptedIn()) startEngine()
+  }, [refresh, startEngine])
 
   async function handleSave() {
     const text = input.trim()
@@ -50,8 +72,13 @@ function App() {
     if (!q) return
     setSearching(true)
     setResults(null)
+    setAnswer(null)
     try {
-      setResults(await search(q))
+      const retrieved = await search(q)
+      setResults(retrieved)
+      if (isEngineReady() && retrieved.length > 0) {
+        await generateAnswer(q, retrieved, setAnswer)
+      }
     } finally {
       setSearching(false)
     }
@@ -129,11 +156,47 @@ function App() {
             </button>
           </section>
 
+          {llmState === 'off' && (
+            <div className="llm-banner">
+              <p>
+                Enable smart answers — downloads a ~1GB AI model once, then answers run
+                fully on this device. Wi-Fi recommended.
+              </p>
+              <button
+                onClick={() => {
+                  setOptedIn(true)
+                  startEngine()
+                }}
+              >
+                Enable smart answers
+              </button>
+            </div>
+          )}
+          {llmState === 'loading' && (
+            <div className="llm-banner">
+              <p>{loadProgress?.text ?? 'Preparing AI model…'}</p>
+              <progress value={loadProgress?.progress ?? 0} max={1} />
+            </div>
+          )}
+          {llmState === 'unsupported' && (
+            <p className="llm-note">
+              Smart answers need WebGPU (Safari 26+ / Chrome). Showing best-matching
+              memories instead.
+            </p>
+          )}
+
+          {answer !== null && (
+            <div className="answer-card">
+              <p>{answer}</p>
+            </div>
+          )}
+
           <section className="memory-list">
             {searching && <p className="empty">Searching your memories…</p>}
             {results !== null && results.length === 0 && (
               <p className="empty">No matching memories found.</p>
             )}
+            {results !== null && results.length > 0 && <h2>Source memories</h2>}
             {results?.map(({ memory, score }) => (
               <div key={memory.id} className="memory-card">
                 <p>{memory.text}</p>
