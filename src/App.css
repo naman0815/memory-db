@@ -82,6 +82,34 @@ header {
   margin-bottom: 16px;
 }
 
+.capture-actions {
+  display: flex;
+  gap: 10px;
+
+  button {
+    flex: 1;
+  }
+
+  .mic {
+    flex: 0 0 auto;
+    background: none;
+    border: 1px solid var(--border, #444);
+    color: inherit;
+
+    &.recording {
+      border-color: #e5484d;
+      color: #e5484d;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .answer-card {
   border: 1px solid var(--accent, #747bff);
   border-radius: 10px;

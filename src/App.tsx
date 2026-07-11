@@ -12,6 +12,7 @@ import {
   generateAnswer,
   type LoadProgress,
 } from './services/generator'
+import { isSpeechSupported, startDictation, type DictationHandle } from './services/speech'
 import './App.css'
 
 type Tab = 'remember' | 'ask'
@@ -30,6 +31,8 @@ function App() {
     () => (!isWebGPUSupported() ? 'unsupported' : hasOptedIn() ? 'loading' : 'off'),
   )
   const [loadProgress, setLoadProgress] = useState<LoadProgress | null>(null)
+  const [dictating, setDictating] = useState(false)
+  const [dictation, setDictation] = useState<DictationHandle | null>(null)
 
   const startEngine = useCallback(() => {
     setLlmState('loading')
@@ -60,6 +63,26 @@ function App() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function toggleDictation() {
+    if (dictating) {
+      dictation?.stop()
+      return
+    }
+    setDictating(true)
+    const handle = startDictation({
+      onTranscript: (text) => setInput(text),
+      onEnd: () => {
+        setDictating(false)
+        setDictation(null)
+      },
+      onError: () => {
+        setDictating(false)
+        setDictation(null)
+      },
+    })
+    setDictation(handle)
   }
 
   async function handleDelete(id: string) {
@@ -113,9 +136,20 @@ function App() {
               placeholder="e.g. My locker code is 4421"
               rows={3}
             />
-            <button onClick={handleSave} disabled={saving || !input.trim()}>
-              {saving ? 'Saving…' : 'Remember'}
-            </button>
+            <div className="capture-actions">
+              {isSpeechSupported() && (
+                <button
+                  className={`mic ${dictating ? 'recording' : ''}`}
+                  onClick={toggleDictation}
+                  aria-label={dictating ? 'Stop dictation' : 'Dictate a memory'}
+                >
+                  {dictating ? '◼ Stop' : '🎤 Speak'}
+                </button>
+              )}
+              <button onClick={handleSave} disabled={saving || !input.trim()}>
+                {saving ? 'Saving…' : 'Remember'}
+              </button>
+            </div>
           </section>
 
           <section className="memory-list">
