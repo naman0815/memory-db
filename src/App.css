@@ -128,6 +128,22 @@ header {
   gap: 10px;
   margin-bottom: 32px;
 
+  input[type='email'] {
+    font: inherit;
+    font-size: 16px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border, #444);
+    background: var(--accent-bg, rgba(255, 255, 255, 0.05));
+    color: inherit;
+  }
+
+  .secondary {
+    background: none;
+    border: 1px solid var(--border, #444);
+    color: inherit;
+  }
+
   textarea {
     font: inherit;
     font-size: 16px;

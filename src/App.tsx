@@ -13,9 +13,20 @@ import {
   type LoadProgress,
 } from './services/generator'
 import { isSpeechSupported, startDictation, type DictationHandle } from './services/speech'
+import {
+  syncConfigured,
+  getSession,
+  getSupabase,
+  signInWithMagicLink,
+  signOut,
+  flushOutbox,
+  restoreFromCloud,
+  startAutoSync,
+} from './services/sync'
+import { embedPending } from './services/retriever'
 import './App.css'
 
-type Tab = 'remember' | 'ask'
+type Tab = 'remember' | 'ask' | 'backup'
 
 function App() {
   const [tab, setTab] = useState<Tab>('remember')
@@ -34,6 +45,11 @@ function App() {
   const [dictating, setDictating] = useState(false)
   const [dictation, setDictation] = useState<DictationHandle | null>(null)
 
+  const [signedInAs, setSignedInAs] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
+  const [backupStatus, setBackupStatus] = useState<string | null>(null)
+  const [restoring, setRestoring] = useState(false)
+
   const startEngine = useCallback(() => {
     setLlmState('loading')
     loadEngine(setLoadProgress)
@@ -50,6 +66,15 @@ function App() {
     preloadEmbedder()
     refresh()
     if (isWebGPUSupported() && hasOptedIn()) startEngine()
+    if (syncConfigured) {
+      startAutoSync()
+      getSession().then((s) => setSignedInAs(s?.user.email ?? null))
+      const { data: sub } = getSupabase().auth.onAuthStateChange((_event, session) => {
+        setSignedInAs(session?.user.email ?? null)
+        if (session) void flushOutbox()
+      })
+      return () => sub.subscription.unsubscribe()
+    }
   }, [refresh, startEngine])
 
   async function handleSave() {
@@ -60,6 +85,7 @@ function App() {
       await saveMemory(text)
       setInput('')
       await refresh()
+      void flushOutbox()
     } finally {
       setSaving(false)
     }
@@ -88,6 +114,38 @@ function App() {
   async function handleDelete(id: string) {
     await deleteMemory(id)
     await refresh()
+    void flushOutbox()
+  }
+
+  async function handleSignIn() {
+    try {
+      await signInWithMagicLink(email.trim())
+      setBackupStatus(`Magic link sent to ${email.trim()} — open it on this device.`)
+    } catch (err) {
+      setBackupStatus(`Sign-in failed: ${(err as Error).message}`)
+    }
+  }
+
+  async function handleRestore() {
+    setRestoring(true)
+    setBackupStatus(null)
+    try {
+      const count = await restoreFromCloud()
+      await refresh()
+      setBackupStatus(
+        count > 0
+          ? `Restored ${count} memories. Rebuilding search index…`
+          : 'Nothing new to restore — local store already has everything.',
+      )
+      if (count > 0) {
+        await embedPending()
+        setBackupStatus(`Restored ${count} memories. Search index ready.`)
+      }
+    } catch (err) {
+      setBackupStatus(`Restore failed: ${(err as Error).message}`)
+    } finally {
+      setRestoring(false)
+    }
   }
 
   async function handleAsk() {
@@ -117,6 +175,9 @@ function App() {
           </button>
           <button className={tab === 'ask' ? 'active' : ''} onClick={() => setTab('ask')}>
             Ask
+          </button>
+          <button className={tab === 'backup' ? 'active' : ''} onClick={() => setTab('backup')}>
+            Backup
           </button>
         </nav>
       </header>
@@ -242,6 +303,50 @@ function App() {
             ))}
           </section>
         </>
+      )}
+      {tab === 'backup' && (
+        <section className="backup">
+          {!syncConfigured && (
+            <p className="empty">
+              Backup isn't configured. Create a free Supabase project, run{' '}
+              <code>supabase/schema.sql</code> in its SQL editor, and set{' '}
+              <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> in{' '}
+              <code>.env.local</code>.
+            </p>
+          )}
+          {syncConfigured && !signedInAs && (
+            <div className="capture">
+              <p className="empty">Sign in to back up your memories.</p>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+              />
+              <button onClick={handleSignIn} disabled={!email.trim()}>
+                Send magic link
+              </button>
+            </div>
+          )}
+          {syncConfigured && signedInAs && (
+            <div className="capture">
+              <p className="empty">Signed in as {signedInAs}. New memories back up automatically.</p>
+              <button onClick={handleRestore} disabled={restoring}>
+                {restoring ? 'Restoring…' : 'Restore from backup'}
+              </button>
+              <button
+                className="secondary"
+                onClick={async () => {
+                  await signOut()
+                  setBackupStatus('Signed out.')
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+          {backupStatus && <p className="empty">{backupStatus}</p>}
+        </section>
       )}
     </div>
   )
