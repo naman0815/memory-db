@@ -4,8 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Served from https://naman0815.github.io/brain-2/
-  base: '/brain-2/',
+  // Vercel serves from the domain root, unlike GitHub Pages' /brain-2/ subpath.
+  base: '/',
   plugins: [
     react(),
     VitePWA({
@@ -17,8 +17,8 @@ export default defineConfig({
         theme_color: '#ede7db',
         background_color: '#ede7db',
         display: 'standalone',
-        start_url: '/brain-2/',
-        scope: '/brain-2/',
+        start_url: '/',
+        scope: '/',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
