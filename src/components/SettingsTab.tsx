@@ -185,7 +185,9 @@ export function SettingsTab({
         <div className="toggle-text">
           <div className="toggle-label">Describe photos automatically</div>
           <div className="toggle-desc">
-            So you can find a photo by what's in it, not just by what you typed. One-time ~250MB download.
+            So you can find a photo by what's in it, not just by what you typed. Uses real memory on your
+            device (well beyond the ~250MB download) — on some phones this can crash the app while
+            processing a photo. Turn it off if that happens.
           </div>
         </div>
         <Toggle

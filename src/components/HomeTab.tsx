@@ -162,10 +162,15 @@ export function HomeTab({
 
     if (isImage) {
       track(`Reading ${file.name}…`, (async () => {
-        const [text, caption] = await Promise.all([
-          ocrImage(file).catch(() => ''),
-          captionOptedIn() ? captionImage(file).catch(() => undefined) : Promise.resolve(undefined),
-        ])
+        // Sequential, not Promise.all: measured the captioning model's own
+        // memory footprint at ~850MB RSS once loaded (90MB -> 934MB in a
+        // direct test) — comparable to the LLM that previously crashed
+        // Safari on-device. Running it concurrently with OCR stacks an
+        // extra peak on top of an already enormous one; running them one
+        // at a time keeps the tab's peak memory to whichever step is
+        // heaviest, not their sum.
+        const text = await ocrImage(file).catch(() => '')
+        const caption = captionOptedIn() ? await captionImage(file).catch(() => undefined) : undefined
         if (text || caption) await attachExtractedText(memory.id, text, caption, onChanged)
         onChanged()
       })())
