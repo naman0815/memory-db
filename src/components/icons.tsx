@@ -16,6 +16,8 @@ export type IconName =
   | 'send'
   | 'settings'
   | 'pin'
+  | 'eye'
+  | 'eyeOff'
 
 const PATHS: Record<IconName, string> = {
   heartCheck:
@@ -35,6 +37,9 @@ const PATHS: Record<IconName, string> = {
   settings:
     'M12 3v2.4|M12 18.6V21|M4.75 6.5l2.1 1.2|M17.15 16.3l2.1 1.2|M3 12h2.4|M18.6 12H21|M4.75 17.5l2.1-1.2|M17.15 7.7l2.1-1.2',
   pin: 'M12 21s-6-5.86-6-10.29A6 6 0 0112 4.5a6 6 0 016 6.21C18 15.14 12 21 12 21z',
+  eye: 'M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z',
+  eyeOff:
+    'M4.7 4.7l14.6 14.6|M9.9 6.2C10.6 6 11.3 5.9 12 5.9c6 0 9.5 6.1 9.5 6.1a17.6 17.6 0 01-3.2 4.2|M6.4 7.6A17.4 17.4 0 002.5 12S6 18.1 12 18.1c1.3 0 2.5-.3 3.5-.7|M9.9 12a2.1 2.1 0 003 2.9',
 }
 
 const OUTLINED: Set<IconName> = new Set(['checkSquare', 'person', 'wallet', 'plane', 'shoe', 'file'])
@@ -144,6 +149,25 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path d={paths[0]} stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
         <circle cx="12" cy="10.7" r="2.1" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+    )
+  }
+
+  if (name === 'eye') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d={paths[0]} stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.3" />
+      </svg>
+    )
+  }
+
+  if (name === 'eyeOff') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        {paths.map((d, i) => (
+          <path key={i} d={d} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        ))}
       </svg>
     )
   }

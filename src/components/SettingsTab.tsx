@@ -4,6 +4,7 @@ import { embedPending } from '../services/retriever'
 import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
 import { isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
 import { Toggle } from './Toggle'
+import { Icon } from './icons'
 
 export function SettingsTab({
   syncCode,
@@ -190,10 +191,18 @@ export function SettingsTab({
               won't be shown again after you leave this screen:
             </p>
           )}
-          <p className="settings-card-note" style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
-            {revealCode ? syncCode : '•'.repeat(syncCode.length)}{' '}
-            <button className="linkish" onClick={() => setRevealCode((v) => !v)}>
-              {revealCode ? 'hide' : 'show'}
+          <p
+            className="settings-card-note"
+            style={{ fontFamily: 'monospace', wordBreak: 'break-all', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <span>{revealCode ? syncCode : '•'.repeat(syncCode.length)}</span>
+            <button
+              type="button"
+              className="icon-btn-inline"
+              aria-label={revealCode ? 'Hide sync code' : 'Show sync code'}
+              onClick={() => setRevealCode((v) => !v)}
+            >
+              <Icon name={revealCode ? 'eyeOff' : 'eye'} size={16} />
             </button>
           </p>
           <button onClick={handleRestore} disabled={restoring}>
