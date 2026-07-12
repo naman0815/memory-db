@@ -248,23 +248,26 @@ button:active:not(:disabled),
 }
 
 .home-bottom-spacer {
-  /* Clears the fixed composer (its own height plus its 0.5in bottom
-     padding) so the last scrolled entry is never hidden behind it. */
-  height: 160px;
+  /* Clears the fixed composer (its own height, no extra manual padding
+     below it beyond whatever the device's own safe area needs). */
+  height: 120px;
 }
 
 .home-composer-wrap {
   /* Fixed, not sticky: a chat composer should stay in one predictable
      place, not drift up next to short content. The empty space above it
      on a short list is expected (same as any messaging app) — what's
-     not okay is the composer's position changing depending on content. */
+     not okay is the composer's position changing depending on content.
+     No manual bottom padding here — env(safe-area-inset-bottom) is 0 on
+     devices without a home indicator, so this pads itself only as much
+     as the actual device needs, nothing added on top. */
   position: fixed;
   left: 50%;
   bottom: 0;
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  padding: 0 16px max(0.5in, calc(16px + env(safe-area-inset-bottom)));
+  padding: 0 16px env(safe-area-inset-bottom);
   box-sizing: border-box;
   pointer-events: none;
 }
