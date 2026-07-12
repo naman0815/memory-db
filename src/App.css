@@ -364,8 +364,8 @@ header {
     cursor: pointer;
 
     &.active {
-      background: var(--accent);
-      border-color: var(--accent);
+      background: var(--icon-color);
+      border-color: var(--icon-color);
       color: var(--text);
     }
   }
@@ -477,7 +477,7 @@ header {
   border-radius: 999px;
   border: none;
   cursor: pointer;
-  background: var(--accent);
+  background: var(--icon-color);
   color: var(--text);
 
   &:disabled {
@@ -715,19 +715,6 @@ img.memory-media {
 .related-item {
   font-size: 13px;
   margin: 4px 0;
-}
-
-.upcoming-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 13px;
-  margin: 8px 0;
-  overflow-wrap: anywhere;
-
-  strong {
-    font-size: 14px;
-  }
 }
 
 .contact-form {

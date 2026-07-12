@@ -24,6 +24,16 @@ function labelOf(m: Memory): string {
   return m.text || m.caption || m.extractedText?.slice(0, 60) || m.type
 }
 
+function fmtUpcoming(ts: number): string {
+  return new Date(ts).toLocaleString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export function HomeTab({
   memories,
   onChanged,
@@ -213,6 +223,10 @@ export function HomeTab({
 
   return (
     <div className="home tab-page">
+      <div className="home-greet">
+        <h1 className="home-title">Hello{userName ? `, ${userName}` : ''}</h1>
+      </div>
+
       {digest && (
         <div className="digest-banner">
           <p>
@@ -240,20 +254,25 @@ export function HomeTab({
       )}
 
       {upcoming.length > 0 && (
-        <section className="memory-list" style={{ marginBottom: 20 }}>
-          <h2>Upcoming</h2>
-          {upcoming.slice(0, 5).map((m) => (
-            <div key={m.id} className="upcoming-item">
-              <strong>{new Date(m.eventDate!).toLocaleString()}</strong>
-              <span>{m.text || m.extractedText?.slice(0, 40) || m.type}</span>
-            </div>
-          ))}
-        </section>
+        <>
+          <div className="home-section-head">
+            <h2>Upcoming</h2>
+          </div>
+          <div className="home-hscroll">
+            {upcoming.slice(0, 5).map((m) => (
+              <div key={m.id} className="home-hcard">
+                <div className="home-tile-icon">
+                  <Icon name={iconForCategory(m.category || 'General')} />
+                </div>
+                <div className="home-tile-text">
+                  <div className="home-tile-title">{labelOf(m)}</div>
+                  <div className="home-tile-sub">{fmtUpcoming(m.eventDate!)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
-
-      <div className="home-greet">
-        <h1 className="home-title">Hello{userName ? `, ${userName}` : ''}</h1>
-      </div>
 
       {pinned.length > 0 && (
         <>
