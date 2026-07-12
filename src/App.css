@@ -148,7 +148,7 @@ button:active:not(:disabled),
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-strong);
-  color: #3a3327;
+  color: var(--icon-color);
 }
 
 .home-tile-icon-outline.active {
@@ -189,63 +189,6 @@ button:active:not(:disabled),
   cursor: default;
 }
 
-.home-entry-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.home-entry-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px 16px 12px;
-}
-
-.home-entry-text {
-  font-size: 15.5px;
-  margin: 0 0 12px;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.home-entry-rule {
-  height: 1px;
-  background: var(--border-strong);
-  margin-bottom: 8px;
-}
-
-.home-entry-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.home-entry-meta span:last-child {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.home-delete {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 17px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-
-.home-empty {
-  opacity: 0.55;
-  text-align: center;
-  padding: 18px 0;
-  font-size: 14px;
-}
 
 .home-processing {
   font-size: 13px;
@@ -317,7 +260,7 @@ button:active:not(:disabled),
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: #3a3327;
+  color: var(--icon-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -715,7 +658,7 @@ img.memory-media {
   justify-content: center;
   background: none;
   border: none;
-  color: inherit;
+  color: var(--icon-color);
   opacity: 0.7;
   cursor: pointer;
   padding: 2px;

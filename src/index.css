@@ -18,6 +18,8 @@
   --accent-active-bg: #efe4c8;
   --send-bg: #241f19;
   --send-fg: #efeae0;
+  /* Brand terracotta — fixed across both themes, not tied to --text. */
+  --icon-color: #de7356;
   --shadow: 0 10px 30px rgba(30, 25, 15, 0.14);
 
   --serif: 'Newsreader', serif;

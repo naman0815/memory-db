@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Memory, MemoryType, RetrievedMemory } from '../types'
-import {
-  saveMemory,
-  attachExtractedText,
-  deleteMemory,
-  updateMemoryText,
-  getMemoryById,
-} from '../services/memories'
+import { saveMemory, attachExtractedText, getMemoryById } from '../services/memories'
 import { flushOutbox } from '../services/sync'
 import { ocrImage } from '../services/ocr'
 import { extractPdfText } from '../services/pdf'
@@ -25,13 +19,6 @@ import {
 import { upcomingMemories, buildDigest, digestDue, markDigestShown, type Digest } from '../services/digest'
 import { Icon } from './icons'
 import { MemoryCard } from './MemoryCard'
-
-function fmtDate(ts: number): string {
-  const diffH = Math.round((Date.now() - ts) / 3600000)
-  if (diffH < 1) return 'Just now'
-  if (diffH < 24) return `${diffH}h ago`
-  return `${Math.round(diffH / 24)}d ago`
-}
 
 function labelOf(m: Memory): string {
   return m.text || m.caption || m.extractedText?.slice(0, 60) || m.type
@@ -65,8 +52,6 @@ export function HomeTab({
   const [digest, setDigest] = useState<Digest | null>(null)
   const [upcoming, setUpcoming] = useState<Memory[]>([])
   const [linkSuggestion, setLinkSuggestion] = useState<{ label: string; related: Memory } | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editDraft, setEditDraft] = useState('')
 
   useEffect(() => {
     upcomingMemories().then(setUpcoming)
@@ -100,15 +85,6 @@ export function HomeTab({
     () => [...memories].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3),
     [memories],
   )
-
-  const entries = useMemo(() => {
-    // filter matches either a category tile (pinned/brain-tab style) or a
-    // tag chip clicked on an entry — same state, two ways in.
-    const list = filter
-      ? memories.filter((m) => (m.category || 'General') === filter || m.tags?.includes(filter))
-      : memories
-    return [...list].sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)
-  }, [filter, memories])
 
   const mode = looksLikeQuestion(input) ? 'ask' : 'save'
 
@@ -235,18 +211,6 @@ export function HomeTab({
     setDictation(handle)
   }
 
-  async function handleDelete(id: string) {
-    await deleteMemory(id)
-    onChanged()
-    void flushOutbox()
-  }
-
-  async function handleSaveEdit(id: string) {
-    setEditingId(null)
-    await updateMemoryText(id, editDraft, onChanged)
-    void flushOutbox()
-  }
-
   return (
     <div className="home tab-page">
       {digest && (
@@ -340,7 +304,7 @@ export function HomeTab({
         </>
       )}
 
-      {answer !== null ? (
+      {answer !== null && (
         <>
           <div className="home-section-head">
             <h2>Answer</h2>
@@ -358,83 +322,6 @@ export function HomeTab({
               <MemoryCard key={memory.id} memory={memory} score={score} />
             ))}
           </section>
-        </>
-      ) : (
-        <>
-          <div className="home-section-head">
-            <h2>{filter ? `${filter} (${entries.length})` : `Recent entries (${entries.length})`}</h2>
-            {filter && (
-              <button type="button" className="home-view-all" onClick={() => setFilter(null)}>
-                Clear
-              </button>
-            )}
-          </div>
-          <div className="home-entry-list">
-            {entries.map((m) =>
-              editingId === m.id ? (
-                <div key={m.id} className="home-entry-card">
-                  <textarea
-                    className="edit-textarea"
-                    value={editDraft}
-                    onChange={(e) => setEditDraft(e.target.value)}
-                    autoFocus
-                  />
-                  <div className="home-entry-rule" />
-                  <div className="home-entry-meta">
-                    <button type="button" className="linkish" onClick={() => setEditingId(null)}>
-                      Cancel
-                    </button>
-                    <button type="button" className="linkish" onClick={() => handleSaveEdit(m.id)}>
-                      Save
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div key={m.id} className="home-entry-card">
-                  <p className="home-entry-text">{labelOf(m)}</p>
-                  {m.tags && m.tags.length > 0 && (
-                    <div className="tags">
-                      {m.tags.map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          className={`tag linkish ${filter === t ? 'active' : ''}`}
-                          onClick={() => setFilter(filter === t ? null : t)}
-                        >
-                          #{t}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="home-entry-rule" />
-                  <div className="home-entry-meta">
-                    <span>{fmtDate(m.createdAt)}</span>
-                    <span>
-                      <button
-                        type="button"
-                        className="linkish"
-                        onClick={() => {
-                          setEditingId(m.id)
-                          setEditDraft(m.text)
-                        }}
-                      >
-                        edit
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Delete"
-                        className="home-delete"
-                        onClick={() => handleDelete(m.id)}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  </div>
-                </div>
-              ),
-            )}
-            {entries.length === 0 && <p className="home-empty">Nothing here yet.</p>}
-          </div>
         </>
       )}
 
