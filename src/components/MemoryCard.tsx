@@ -7,13 +7,19 @@ export function MemoryCard({
   memory,
   score,
   onDelete,
+  onEdit,
+  onTagClick,
 }: {
   memory: Memory
   score?: number
   onDelete?: (id: string) => void
+  onEdit?: (id: string, text: string) => void
+  onTagClick?: (tag: string) => void
 }) {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
   const [related, setRelated] = useState<RetrievedMemory[] | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(memory.text)
 
   useEffect(() => {
     let url: string | null = null
@@ -48,7 +54,40 @@ export function MemoryCard({
         </a>
       )}
 
-      {memory.text && <p>{memory.text}</p>}
+      {editing ? (
+        <div className="edit-row">
+          <textarea
+            className="edit-textarea"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            autoFocus
+          />
+          <div className="edit-actions">
+            <button
+              type="button"
+              className="linkish"
+              onClick={() => {
+                onEdit?.(memory.id, draft)
+                setEditing(false)
+              }}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="linkish"
+              onClick={() => {
+                setDraft(memory.text)
+                setEditing(false)
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        memory.text && <p>{memory.text}</p>
+      )}
       {memory.caption && <p className="caption">{memory.caption}</p>}
       {memory.url && (
         <a href={memory.url} target="_blank" rel="noreferrer">
@@ -77,11 +116,17 @@ export function MemoryCard({
 
       {memory.tags && memory.tags.length > 0 && (
         <div className="tags">
-          {memory.tags.map((t) => (
-            <span key={t} className="tag">
-              #{t}
-            </span>
-          ))}
+          {memory.tags.map((t) =>
+            onTagClick ? (
+              <button key={t} type="button" className="tag linkish" onClick={() => onTagClick(t)}>
+                #{t}
+              </button>
+            ) : (
+              <span key={t} className="tag">
+                #{t}
+              </span>
+            ),
+          )}
         </div>
       )}
 
@@ -97,6 +142,11 @@ export function MemoryCard({
           >
             {related ? 'hide related' : 'related'}
           </button>
+          {onEdit && !editing && (
+            <button className="linkish" onClick={() => setEditing(true)}>
+              edit
+            </button>
+          )}
           {onDelete && (
             <button className="delete" onClick={() => onDelete(memory.id)} aria-label="Delete memory">
               ×

@@ -110,6 +110,32 @@ export async function listMemories(): Promise<Memory[]> {
   return storage.getAllMemories()
 }
 
+export async function getMemoryById(id: string): Promise<Memory | undefined> {
+  return storage.getMemory(id)
+}
+
+/**
+ * User-initiated text edit (typo/OCR-mistake correction). Only re-embeds —
+ * doesn't re-run enrichMemory, since tags/category/eventDate were likely
+ * already set (by the user or by enrichment) and a wording tweak shouldn't
+ * silently reclassify or re-tag an entry the user has already curated.
+ */
+export async function updateMemoryText(id: string, text: string, onUpdated?: () => void): Promise<void> {
+  const memory = await storage.getMemory(id)
+  if (!memory) return
+  const trimmed = text.trim()
+  const updated = { ...memory, text: trimmed }
+  await storage.updateMemory(id, { text: trimmed, synced: false })
+  await storage.enqueueOutbox({ id: uuid(), memoryId: id, op: 'upsert', attempts: 0 })
+  try {
+    const vector = await embed(embedText(updated))
+    await storage.updateMemory(id, { embedding: vector, embeddingModelVersion: EMBED_CONTENT_VERSION })
+  } catch {
+    // embedPending() retries later
+  }
+  onUpdated?.()
+}
+
 export async function getBlobUrl(blobId: string): Promise<string | null> {
   const stored = await storage.getBlob(blobId)
   return stored ? URL.createObjectURL(stored.blob) : null

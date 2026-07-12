@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Memory, MemoryType, RetrievedMemory } from '../types'
-import { saveMemory, attachExtractedText, deleteMemory } from '../services/memories'
+import {
+  saveMemory,
+  attachExtractedText,
+  deleteMemory,
+  updateMemoryText,
+  getMemoryById,
+} from '../services/memories'
 import { flushOutbox } from '../services/sync'
 import { ocrImage } from '../services/ocr'
 import { extractPdfText } from '../services/pdf'
@@ -8,7 +14,7 @@ import { transcribeAudio } from '../services/audio'
 import { isSpeechSupported, startDictation, type DictationHandle } from '../services/speech'
 import { iconForCategory } from '../services/categoryIcon'
 import { looksLikeQuestion } from '../services/intent'
-import { search } from '../services/retriever'
+import { search, relatedMemories } from '../services/retriever'
 import {
   isEngineReady,
   generateAnswer,
@@ -58,6 +64,9 @@ export function HomeTab({
 
   const [digest, setDigest] = useState<Digest | null>(null)
   const [upcoming, setUpcoming] = useState<Memory[]>([])
+  const [linkSuggestion, setLinkSuggestion] = useState<{ label: string; related: Memory } | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState('')
 
   useEffect(() => {
     upcomingMemories().then(setUpcoming)
@@ -93,9 +102,13 @@ export function HomeTab({
   )
 
   const entries = useMemo(() => {
-    const list = filter ? byCategory.get(filter) ?? [] : memories
+    // filter matches either a category tile (pinned/brain-tab style) or a
+    // tag chip clicked on an entry — same state, two ways in.
+    const list = filter
+      ? memories.filter((m) => (m.category || 'General') === filter || m.tags?.includes(filter))
+      : memories
     return [...list].sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)
-  }, [filter, byCategory, memories])
+  }, [filter, memories])
 
   const mode = looksLikeQuestion(input) ? 'ask' : 'save'
 
@@ -110,6 +123,22 @@ export function HomeTab({
     setGenError(null)
   }
 
+  /**
+   * After a memory finishes embedding, check whether it's a strong semantic
+   * match for something already saved and surface a one-tap suggestion —
+   * the embedding/relatedMemories() machinery already existed for the
+   * "related" button, this just proactively runs it once on save instead of
+   * waiting for the user to think to check.
+   */
+  async function checkForLinks(id: string) {
+    const fresh = await getMemoryById(id)
+    if (!fresh) return
+    const related = await relatedMemories(fresh, 1)
+    if (related.length && related[0].score >= 0.5) {
+      setLinkSuggestion({ label: labelOf(fresh), related: related[0].memory })
+    }
+  }
+
   async function handleAsk(question: string) {
     setAsking(true)
     clearAnswer()
@@ -119,7 +148,7 @@ export function HomeTab({
       if (retrieved.length === 0) {
         setAnswer(NOT_REMEMBERED)
       } else if (isDirectHit(retrieved)) {
-        setAnswer(buildDirectAnswer(retrieved[0].memory))
+        setAnswer(buildDirectAnswer(retrieved[0].memory, question))
       } else if (isEngineReady()) {
         try {
           await generateAnswer(question, retrieved, setAnswer)
@@ -142,7 +171,10 @@ export function HomeTab({
       await handleAsk(text)
     } else {
       clearAnswer()
-      await saveMemory({ text, category: filter ?? undefined }, onChanged)
+      const memory = await saveMemory({ text, category: filter ?? undefined }, () => {
+        onChanged()
+        checkForLinks(memory.id)
+      })
       onChanged()
       void flushOutbox()
     }
@@ -164,18 +196,21 @@ export function HomeTab({
         const text = await ocrImage(file).catch(() => '')
         if (text) await attachExtractedText(memory.id, text, onChanged)
         onChanged()
+        checkForLinks(memory.id)
       })())
     } else if (isPdf) {
       track(`Extracting ${file.name}…`, (async () => {
         const text = await extractPdfText(file).catch(() => '')
         if (text) await attachExtractedText(memory.id, text, onChanged)
         onChanged()
+        checkForLinks(memory.id)
       })())
     } else if (isAudio) {
       track('Transcribing audio…', (async () => {
         const text = await transcribeAudio(file).catch(() => '')
         if (text) await attachExtractedText(memory.id, text, onChanged)
         onChanged()
+        checkForLinks(memory.id)
       })())
     }
   }
@@ -206,6 +241,12 @@ export function HomeTab({
     void flushOutbox()
   }
 
+  async function handleSaveEdit(id: string) {
+    setEditingId(null)
+    await updateMemoryText(id, editDraft, onChanged)
+    void flushOutbox()
+  }
+
   return (
     <div className="home tab-page">
       {digest && (
@@ -213,8 +254,24 @@ export function HomeTab({
           <p>
             {digest.recentCount} new {digest.recentCount === 1 ? 'memory' : 'memories'} this week ·{' '}
             {digest.totalCount} total
+            {digest.expiringSoon.length > 0 && (
+              <>
+                {' '}
+                · {digest.expiringSoon.length} expiring in 3 days
+              </>
+            )}
+            {digest.topTags.length > 0 && <> · mostly {digest.topTags.slice(0, 3).join(', ')}</>}
           </p>
           <button onClick={() => setDigest(null)}>Dismiss</button>
+        </div>
+      )}
+
+      {linkSuggestion && (
+        <div className="digest-banner">
+          <p>
+            "{linkSuggestion.label}" looks related to "{labelOf(linkSuggestion.related)}".
+          </p>
+          <button onClick={() => setLinkSuggestion(null)}>Dismiss</button>
         </div>
       )}
 
@@ -313,23 +370,69 @@ export function HomeTab({
             )}
           </div>
           <div className="home-entry-list">
-            {entries.map((m) => (
-              <div key={m.id} className="home-entry-card">
-                <p className="home-entry-text">{labelOf(m)}</p>
-                <div className="home-entry-rule" />
-                <div className="home-entry-meta">
-                  <span>{fmtDate(m.createdAt)}</span>
-                  <button
-                    type="button"
-                    aria-label="Delete"
-                    className="home-delete"
-                    onClick={() => handleDelete(m.id)}
-                  >
-                    ×
-                  </button>
+            {entries.map((m) =>
+              editingId === m.id ? (
+                <div key={m.id} className="home-entry-card">
+                  <textarea
+                    className="edit-textarea"
+                    value={editDraft}
+                    onChange={(e) => setEditDraft(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="home-entry-rule" />
+                  <div className="home-entry-meta">
+                    <button type="button" className="linkish" onClick={() => setEditingId(null)}>
+                      Cancel
+                    </button>
+                    <button type="button" className="linkish" onClick={() => handleSaveEdit(m.id)}>
+                      Save
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div key={m.id} className="home-entry-card">
+                  <p className="home-entry-text">{labelOf(m)}</p>
+                  {m.tags && m.tags.length > 0 && (
+                    <div className="tags">
+                      {m.tags.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`tag linkish ${filter === t ? 'active' : ''}`}
+                          onClick={() => setFilter(filter === t ? null : t)}
+                        >
+                          #{t}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="home-entry-rule" />
+                  <div className="home-entry-meta">
+                    <span>{fmtDate(m.createdAt)}</span>
+                    <span>
+                      <button
+                        type="button"
+                        className="linkish"
+                        onClick={() => {
+                          setEditingId(m.id)
+                          setEditDraft(m.text)
+                        }}
+                      >
+                        edit
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Delete"
+                        className="home-delete"
+                        onClick={() => handleDelete(m.id)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              ),
+            )}
             {entries.length === 0 && <p className="home-empty">Nothing here yet.</p>}
           </div>
         </>

@@ -223,6 +223,12 @@ button:active:not(:disabled),
   color: var(--text-muted);
 }
 
+.home-entry-meta span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .home-delete {
   background: transparent;
   border: none;
@@ -681,6 +687,26 @@ img.memory-media {
     opacity: 1;
     text-decoration: underline;
   }
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 70px;
+  font: inherit;
+  color: inherit;
+  background: var(--card-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 8px 10px;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .linkish {

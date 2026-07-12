@@ -6,6 +6,8 @@ const DIGEST_KEY = 'last-digest-shown'
 
 export interface Digest {
   upcoming: Memory[]
+  /** Events/expiries within the next 3 days — surfaced separately since these need action soon. */
+  expiringSoon: Memory[]
   recentCount: number
   totalCount: number
   topTags: string[]
@@ -28,6 +30,7 @@ export async function buildDigest(): Promise<Digest> {
   for (const m of recent) for (const t of m.tags ?? []) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)
   return {
     upcoming: await upcomingMemories(),
+    expiringSoon: await upcomingMemories(3),
     recentCount: recent.length,
     totalCount: all.length,
     topTags: [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t]) => t),

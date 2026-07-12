@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Memory, MemoryType } from '../types'
-import { deleteMemory } from '../services/memories'
+import { deleteMemory, updateMemoryText } from '../services/memories'
 import { flushOutbox } from '../services/sync'
 import { iconForCategory } from '../services/categoryIcon'
 import { Icon } from './icons'
@@ -66,6 +66,11 @@ export function BrainTab({
   async function handleDelete(id: string) {
     await deleteMemory(id)
     onChanged()
+    void flushOutbox()
+  }
+
+  async function handleEdit(id: string, text: string) {
+    await updateMemoryText(id, text, onChanged)
     void flushOutbox()
   }
 
@@ -142,7 +147,13 @@ export function BrainTab({
           <div key={day}>
             <h2>{day}</h2>
             {items.map((m) => (
-              <MemoryCard key={m.id} memory={m} onDelete={handleDelete} />
+              <MemoryCard
+                key={m.id}
+                memory={m}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                onTagClick={(t) => setTagFilter(tagFilter === t ? null : t)}
+              />
             ))}
           </div>
         ))}

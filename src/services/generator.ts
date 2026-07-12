@@ -85,13 +85,34 @@ export function isDirectHit(retrieved: RetrievedMemory[]): boolean {
 
 export const NOT_REMEMBERED = "I don't have that stored."
 
+// Maps a question's own wording to the extractTicketFields() label it's
+// actually asking about — "what's my seat" should answer from fields.Seats,
+// not fall through to the generic event date/time line.
+const FIELD_QUESTION_MAP: [RegExp, string][] = [
+  [/\bseats?\b/i, 'Seats'],
+  [/\bgate\b/i, 'Gate'],
+  [/\bpnr\b/i, 'PNR'],
+  [/\bbooking\s*id\b/i, 'Booking ID'],
+  [/\bscreen\b/i, 'Screen'],
+]
+
 /**
  * Deterministic, personalized answer built directly from a memory's own
  * fields — no LLM involved. Used for direct hits so there's zero risk of a
  * small model reframing a personal ticket/note as generic public knowledge
  * (e.g. "The Odyssey was released on..." instead of "Your show is on...").
+ *
+ * `question` lets a specific field question ("what's my seat?") answer from
+ * extractTicketFields() output instead of always defaulting to the event
+ * date/time — without it, every ticket question answered with the same
+ * date/time line regardless of what was actually asked.
  */
-export function buildDirectAnswer(memory: Memory): string {
+export function buildDirectAnswer(memory: Memory, question = ''): string {
+  for (const [re, key] of FIELD_QUESTION_MAP) {
+    if (re.test(question) && memory.fields?.[key]) {
+      return `Your ${key.toLowerCase()} is ${memory.fields[key]}.`
+    }
+  }
   if (memory.eventDate) {
     const dt = new Date(memory.eventDate)
     const dateStr = dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
