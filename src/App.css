@@ -248,20 +248,23 @@ button:active:not(:disabled),
 }
 
 .home-bottom-spacer {
-  height: 24px;
+  /* Clears the fixed composer (its own height plus its 2in bottom
+     padding) so the last scrolled entry is never hidden behind it. */
+  height: 300px;
 }
 
 .home-composer-wrap {
-  /* Sticky, not fixed: with little content the composer sits right after
-     it instead of floating far away at the absolute screen bottom (which
-     read as "too much padding" below short lists). Once there's enough
-     content to scroll, it sticks to the bottom like before. */
-  position: sticky;
+  /* Fixed, not sticky: a chat composer should stay in one predictable
+     place, not drift up next to short content. The empty space above it
+     on a short list is expected (same as any messaging app) — what's
+     not okay is the composer's position changing depending on content. */
+  position: fixed;
+  left: 50%;
   bottom: 0;
+  transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  margin: 0 auto;
-  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  padding: 0 16px max(2in, calc(16px + env(safe-area-inset-bottom)));
   box-sizing: border-box;
   pointer-events: none;
 }
