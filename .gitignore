@@ -5,3 +5,5 @@ dev-dist
 .env.local
 .DS_Store
 .debug
+.vercel
+.env*

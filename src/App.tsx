@@ -3,7 +3,7 @@ import type { Memory } from './types'
 import { listMemories, requestPersistentStorage } from './services/memories'
 import { preloadEmbedder } from './services/embedder'
 import { isWebGPUSupported, loadEngine, hasOptedIn, type LoadProgress } from './services/generator'
-import { syncConfigured, getSession, getSupabase, flushOutbox, startAutoSync } from './services/sync'
+import { syncConfigured, getSyncCode, startAutoSync } from './services/sync'
 import { notifyImminentEvents } from './services/digest'
 import { isLockEnabled } from './services/auth'
 import { getPinnedCategories, togglePinnedCategory } from './services/pins'
@@ -25,7 +25,7 @@ function App() {
   const [memories, setMemories] = useState<Memory[]>([])
   const [online, setOnline] = useState(navigator.onLine)
   const [storageUsage, setStorageUsage] = useState<string | null>(null)
-  const [signedInAs, setSignedInAs] = useState<string | null>(null)
+  const [syncCode, setSyncCode] = useState<string | null>(() => getSyncCode())
   const [pinnedCategories, setPinnedCategories] = useState<string[]>(() => getPinnedCategories())
   const [userName, setUserNameState] = useState(() => getUserName())
   const [llmState, setLlmState] = useState<'unsupported' | 'off' | 'loading' | 'ready'>(() =>
@@ -78,21 +78,11 @@ function App() {
     navigator.storage?.estimate?.().then((est) => {
       if (est.usage != null) setStorageUsage(`${(est.usage / 1024 / 1024).toFixed(0)} MB used locally`)
     })
-    let unsubscribeAuth: (() => void) | undefined
-    if (syncConfigured) {
-      startAutoSync()
-      getSession().then((s) => setSignedInAs(s?.user.email ?? null))
-      const { data: sub } = getSupabase().auth.onAuthStateChange((_event, session) => {
-        setSignedInAs(session?.user.email ?? null)
-        if (session) void flushOutbox()
-      })
-      unsubscribeAuth = () => sub.subscription.unsubscribe()
-    }
+    if (syncConfigured) startAutoSync()
     return () => {
       window.removeEventListener('online', goOnline)
       window.removeEventListener('offline', goOffline)
       document.removeEventListener('visibilitychange', onVisibility)
-      unsubscribeAuth?.()
     }
   }, [refresh, startEngine])
 
@@ -149,7 +139,8 @@ function App() {
       )}
       {tab === 'settings' && (
         <SettingsTab
-          signedInAs={signedInAs}
+          syncCode={syncCode}
+          onSyncCodeChange={setSyncCode}
           storageUsage={storageUsage}
           onChanged={refresh}
           userName={userName}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { syncConfigured, signInWithMagicLink, signOut, restoreFromCloud } from '../services/sync'
+import { syncConfigured, generateSyncCode, setSyncCode, clearSyncCode, restoreFromCloud } from '../services/sync'
 import { embedPending } from '../services/retriever'
 import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
 import { isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
 import { Toggle } from './Toggle'
 
 export function SettingsTab({
-  signedInAs,
+  syncCode,
+  onSyncCodeChange,
   storageUsage,
   onChanged,
   userName,
@@ -15,7 +16,8 @@ export function SettingsTab({
   loadProgress,
   onEnableLlm,
 }: {
-  signedInAs: string | null
+  syncCode: string | null
+  onSyncCodeChange: (code: string | null) => void
   storageUsage: string | null
   onChanged: () => void
   userName: string
@@ -25,7 +27,9 @@ export function SettingsTab({
   onEnableLlm: () => void
 }) {
   const [name, setName] = useState(userName)
-  const [email, setEmail] = useState('')
+  const [enteredCode, setEnteredCode] = useState('')
+  const [newCode, setNewCode] = useState<string | null>(null)
+  const [revealCode, setRevealCode] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
@@ -53,13 +57,26 @@ export function SettingsTab({
     }
   }
 
-  async function handleSignIn() {
-    try {
-      await signInWithMagicLink(email.trim())
-      setStatus(`Check ${email.trim()} for a sign-in link, then open it on this device.`)
-    } catch (err) {
-      setStatus(`Couldn't send that link: ${(err as Error).message}`)
-    }
+  function handleEnableBackup() {
+    const code = generateSyncCode()
+    setNewCode(code)
+    setRevealCode(true)
+    onSyncCodeChange(code)
+  }
+
+  function handleLinkDevice() {
+    if (!enteredCode.trim()) return
+    setSyncCode(enteredCode.trim())
+    onSyncCodeChange(enteredCode.trim())
+    setEnteredCode('')
+    setStatus('Linked. Tap "Restore from backup" to pull in memories from your other device.')
+  }
+
+  function handleTurnOffBackup() {
+    clearSyncCode()
+    onSyncCodeChange(null)
+    setNewCode(null)
+    setStatus('Backup turned off on this device. Your existing backup is untouched.')
   }
 
   async function handleRestore() {
@@ -140,37 +157,50 @@ export function SettingsTab({
           storage automatically.
         </p>
       )}
-      {syncConfigured && !signedInAs && (
+      {syncConfigured && !syncCode && (
         <div className="settings-card">
-          <p className="settings-card-note">Sign in to start backing up your memories.</p>
+          <p className="settings-card-note">
+            Backup uses a sync code instead of an account — whoever has the code can restore your
+            memories on any device. Treat it like a password.
+          </p>
+          <button onClick={handleEnableBackup}>Turn on backup</button>
+          <p className="settings-card-note" style={{ marginTop: 10 }}>
+            Already have a code from another device?
+          </p>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            type="text"
+            value={enteredCode}
+            onChange={(e) => setEnteredCode(e.target.value)}
+            placeholder="Paste your sync code"
           />
-          <button onClick={handleSignIn} disabled={!email.trim()}>
-            Send sign-in link
+          <button onClick={handleLinkDevice} disabled={!enteredCode.trim()}>
+            Link this device
           </button>
         </div>
       )}
-      {syncConfigured && signedInAs && (
+      {syncConfigured && syncCode && (
         <div className="settings-card">
           <p className="settings-card-note">
-            Signed in as {signedInAs}. New memories back up automatically. Photos, PDFs, and audio stay on
-            this device for now — everything else is backed up.
+            Backup is on. New memories back up automatically. Photos, PDFs, and audio stay on this
+            device for now — everything else is backed up.
+          </p>
+          {newCode && (
+            <p className="settings-card-note">
+              Save this sync code somewhere safe — it's the only way to restore on another device and
+              won't be shown again after you leave this screen:
+            </p>
+          )}
+          <p className="settings-card-note" style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+            {revealCode ? syncCode : '•'.repeat(syncCode.length)}{' '}
+            <button className="linkish" onClick={() => setRevealCode((v) => !v)}>
+              {revealCode ? 'hide' : 'show'}
+            </button>
           </p>
           <button onClick={handleRestore} disabled={restoring}>
             {restoring ? 'Restoring…' : 'Restore from backup'}
           </button>
-          <button
-            className="secondary"
-            onClick={async () => {
-              await signOut()
-              setStatus('Signed out.')
-            }}
-          >
-            Sign out
+          <button className="secondary" onClick={handleTurnOffBackup}>
+            Turn off backup on this device
           </button>
         </div>
       )}

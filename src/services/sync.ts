@@ -1,79 +1,80 @@
-import { createClient, type SupabaseClient, type Session } from '@supabase/supabase-js'
 import { storage } from './storage'
 import type { Memory } from '../types'
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+const SYNC_CODE_KEY = 'sync-code'
+const API = '/api/memories'
 
-export const syncConfigured = Boolean(url && anonKey)
+export const syncConfigured = true
 
-let client: SupabaseClient | null = null
-
-export function getSupabase(): SupabaseClient {
-  if (!syncConfigured) throw new Error('Supabase not configured')
-  if (!client) client = createClient(url!, anonKey!)
-  return client
+export function getSyncCode(): string | null {
+  return localStorage.getItem(SYNC_CODE_KEY)
 }
 
-export async function getSession(): Promise<Session | null> {
-  if (!syncConfigured) return null
-  const { data } = await getSupabase().auth.getSession()
-  return data.session
+/** Turns on backup for the first time on this device — one-time random secret, shown once. */
+export function generateSyncCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(20))
+  const code = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+  localStorage.setItem(SYNC_CODE_KEY, code)
+  return code
 }
 
-export async function signInWithMagicLink(email: string): Promise<void> {
-  const { error } = await getSupabase().auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin },
-  })
-  if (error) throw error
+/** Links this device to an existing backup created elsewhere. */
+export function setSyncCode(code: string): void {
+  localStorage.setItem(SYNC_CODE_KEY, code.trim())
 }
 
-export async function signOut(): Promise<void> {
-  await getSupabase().auth.signOut()
+/** Forgets the code on this device only — does not delete the server-side backup. */
+export function clearSyncCode(): void {
+  localStorage.removeItem(SYNC_CODE_KEY)
+}
+
+function toRow(memory: Memory) {
+  return {
+    id: memory.id,
+    text: memory.text,
+    created_at: new Date(memory.createdAt).toISOString(),
+    tags: memory.tags ?? null,
+    deleted_at: memory.deletedAt ? new Date(memory.deletedAt).toISOString() : null,
+    // Everything except the raw blob (media backup would need object storage — future)
+    meta: {
+      type: memory.type,
+      category: memory.category ?? null,
+      url: memory.url ?? null,
+      fields: memory.fields ?? null,
+      extractedText: memory.extractedText ?? null,
+      caption: memory.caption ?? null,
+      eventDate: memory.eventDate ?? null,
+      entities: memory.entities ?? null,
+      mimeType: memory.mimeType ?? null,
+    },
+  }
 }
 
 let flushing = false
 
 /**
- * Push everything in the outbox to Supabase. Safe to call often — no-ops
- * when offline, signed out, unconfigured, or already flushing. Entries stay
- * queued until the server confirms, so nothing is lost on failure.
+ * Push everything in the outbox to the backup API. Safe to call often —
+ * no-ops when offline or no sync code is set. Entries stay queued until the
+ * server confirms, so nothing is lost on failure.
  */
 export async function flushOutbox(): Promise<void> {
-  if (!syncConfigured || flushing || !navigator.onLine) return
-  const session = await getSession()
-  if (!session) return
+  const syncCode = getSyncCode()
+  if (!syncCode || flushing || !navigator.onLine) return
 
   flushing = true
   try {
-    const supabase = getSupabase()
     for (const entry of await storage.getOutbox()) {
       const memory = await storage.getMemory(entry.memoryId)
       if (!memory) {
         await storage.removeOutbox(entry.id)
         continue
       }
-      const { error } = await supabase.from('memories').upsert({
-        id: memory.id,
-        text: memory.text,
-        created_at: new Date(memory.createdAt).toISOString(),
-        tags: memory.tags ?? null,
-        deleted_at: memory.deletedAt ? new Date(memory.deletedAt).toISOString() : null,
-        // Everything except the raw blob (media backup needs Supabase Storage — future)
-        meta: {
-          type: memory.type,
-          category: memory.category ?? null,
-          url: memory.url ?? null,
-          fields: memory.fields ?? null,
-          extractedText: memory.extractedText ?? null,
-          caption: memory.caption ?? null,
-          eventDate: memory.eventDate ?? null,
-          entities: memory.entities ?? null,
-          mimeType: memory.mimeType ?? null,
-        },
+      const res = await fetch(API, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ syncCode, memory: toRow(memory) }),
       })
-      if (error) {
+      if (!res.ok) {
         await storage.updateOutbox(entry.id, {
           attempts: entry.attempts + 1,
           lastTriedAt: Date.now(),
@@ -90,15 +91,15 @@ export async function flushOutbox(): Promise<void> {
 
 /** Pull all backed-up memories into the local store (embeddings recomputed locally). */
 export async function restoreFromCloud(): Promise<number> {
-  const supabase = getSupabase()
-  const { data, error } = await supabase
-    .from('memories')
-    .select('id, text, created_at, tags, deleted_at, meta')
-    .is('deleted_at', null)
-  if (error) throw error
+  const syncCode = getSyncCode()
+  if (!syncCode) throw new Error('No sync code set on this device')
+
+  const res = await fetch(`${API}?syncCode=${encodeURIComponent(syncCode)}`)
+  if (!res.ok) throw new Error(`Restore failed: ${res.status}`)
+  const { rows } = (await res.json()) as { rows: Record<string, any>[] }
 
   let restored = 0
-  for (const row of data ?? []) {
+  for (const row of rows) {
     if (await storage.getMemory(row.id)) continue
     const meta = row.meta ?? {}
     const memory: Memory = {
@@ -124,7 +125,6 @@ export async function restoreFromCloud(): Promise<number> {
 
 /** Wire up automatic flushing: on reconnect and on a slow heartbeat. */
 export function startAutoSync(): void {
-  if (!syncConfigured) return
   window.addEventListener('online', () => void flushOutbox())
   setInterval(() => void flushOutbox(), 60_000)
   void flushOutbox()
