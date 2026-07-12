@@ -191,11 +191,8 @@ export function SettingsTab({
               won't be shown again after you leave this screen:
             </p>
           )}
-          <p
-            className="settings-card-note"
-            style={{ fontFamily: 'monospace', wordBreak: 'break-all', display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            <span>{revealCode ? syncCode : '•'.repeat(syncCode.length)}</span>
+          <div className="sync-code-row">
+            <span className="sync-code-text">{revealCode ? syncCode : '•'.repeat(syncCode.length)}</span>
             <button
               type="button"
               className="icon-btn-inline"
@@ -204,7 +201,7 @@ export function SettingsTab({
             >
               <Icon name={revealCode ? 'eyeOff' : 'eye'} size={16} />
             </button>
-          </p>
+          </div>
           <button onClick={handleRestore} disabled={restoring}>
             {restoring ? 'Restoring…' : 'Restore from backup'}
           </button>

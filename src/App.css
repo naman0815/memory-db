@@ -720,6 +720,7 @@ img.memory-media {
   cursor: pointer;
   padding: 2px;
   line-height: 0;
+  flex-shrink: 0;
 }
 
 .icon-btn-inline:active {
@@ -963,9 +964,32 @@ img.memory-media {
     }
   }
 
+  button.icon-btn-inline {
+    padding: 2px;
+    background: none;
+    align-self: center;
+  }
+
   progress {
     width: 100%;
   }
+}
+
+.sync-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sync-code-text {
+  font-family: monospace;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .settings-name-input {
