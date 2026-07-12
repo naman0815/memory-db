@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { syncConfigured, signInWithMagicLink, signOut, restoreFromCloud } from '../services/sync'
 import { embedPending } from '../services/retriever'
-import { captionOptedIn, setCaptionOptedIn } from '../services/caption'
 import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
 import { isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
 import { Toggle } from './Toggle'
@@ -29,7 +28,6 @@ export function SettingsTab({
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
-  const [captions, setCaptions] = useState(captionOptedIn())
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [lockEnabled, setLockEnabled] = useState(isLockEnabled())
   const [lockStatus, setLockStatus] = useState<string | null>(null)
@@ -177,28 +175,6 @@ export function SettingsTab({
         </div>
       )}
       {status && <p className="settings-hint">{status}</p>}
-
-      <div className="home-section-head">
-        <h2>Photos</h2>
-      </div>
-      <label className="settings-card toggle-row">
-        <div className="toggle-text">
-          <div className="toggle-label">Describe photos automatically</div>
-          <div className="toggle-desc">
-            So you can find a photo by what's in it, not just by what you typed. Uses real memory on your
-            device (well beyond the ~250MB download) — on some phones this can crash the app while
-            processing a photo. Turn it off if that happens.
-          </div>
-        </div>
-        <Toggle
-          ariaLabel="Describe photos automatically"
-          checked={captions}
-          onChange={(checked) => {
-            setCaptions(checked)
-            setCaptionOptedIn(checked)
-          }}
-        />
-      </label>
 
       <div className="home-section-head">
         <h2>Privacy</h2>

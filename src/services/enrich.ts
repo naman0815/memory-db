@@ -94,6 +94,36 @@ export function heuristicTags(text: string): string[] {
     .map(([w]) => w)
 }
 
+/**
+ * Deterministic category tags for OCR'd/structured content — tickets,
+ * receipts, bookings and the like. Fixes the actual complaint: raw OCR
+ * text on a ticket ("BOOKING ID WKBK742", seat codes "J8, J9, J10") was
+ * feeding the LLM tagger short numeric/coded fragments that got tagged
+ * verbatim ("#1-3"), which are meaningless as tags. These patterns pull
+ * out the human-meaningful category words instead ("ticket", "movie",
+ * "booking"), and take priority over the LLM/heuristic fallback.
+ */
+const CONTENT_TAG_PATTERNS: [RegExp, string][] = [
+  [/\b(tickets?|admit\s?one)\b/i, 'ticket'],
+  [/\b(cinemas?|cinepolis|multiplex|\bpvr\b|inox|imax|movies?|films?)\b/i, 'movie'],
+  [/\bbookings?\b/i, 'booking'],
+  [/\b(flights?|boarding\s?pass|airlines?|airports?)\b/i, 'flight'],
+  [/\b(hotels?|check-?in|check-?out|reservations?)\b/i, 'hotel'],
+  [/\b(concerts?|festivals?|\bgigs?\b)\b/i, 'concert'],
+  [/\b(receipts?|invoices?|\bgst\b|total\s?amount)\b/i, 'receipt'],
+  [/\b(appointments?|clinics?|doctors?|prescriptions?)\b/i, 'appointment'],
+  [/\b(trains?|railway|\birctc\b)\b/i, 'train'],
+  [/\bevents?\b/i, 'event'],
+]
+
+export function contentCategoryTags(text: string): string[] {
+  const tags: string[] = []
+  for (const [re, tag] of CONTENT_TAG_PATTERNS) {
+    if (re.test(text) && !tags.includes(tag)) tags.push(tag)
+  }
+  return tags.slice(0, 4)
+}
+
 export async function llmTags(text: string): Promise<string[] | null> {
   if (!isEngineReady()) return null
   try {
@@ -103,7 +133,9 @@ export async function llmTags(text: string): Promise<string[] | null> {
     const tags = out
       .split(/[,\n]/)
       .map((t) => t.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''))
-      .filter((t) => t.length > 1 && t.length < 25)
+      // No digits — a real tag is a word, not an OCR'd code/number/range
+      // (this is exactly what let '#1-3' through before).
+      .filter((t) => t.length > 1 && t.length < 25 && !/\d/.test(t))
       .slice(0, 4)
     return tags.length ? tags : null
   } catch {
@@ -139,7 +171,9 @@ export async function enrichMemory(memory: Memory): Promise<Partial<Memory>> {
     if (fields) changes.fields = fields
   }
   if (!memory.tags?.length) {
-    changes.tags = (await llmTags(searchable)) ?? heuristicTags(searchable)
+    const contentTags = contentCategoryTags(searchable)
+    const fallbackTags = (await llmTags(searchable)) ?? heuristicTags(searchable)
+    changes.tags = [...contentTags, ...fallbackTags.filter((t) => !contentTags.includes(t))].slice(0, 4)
   }
   if (!memory.category) {
     const tags = changes.tags ?? memory.tags

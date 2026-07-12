@@ -72,13 +72,12 @@ export async function saveMemory(input: SaveInput, onEnriched?: () => void): Pro
 export async function attachExtractedText(
   id: string,
   extractedText: string,
-  caption?: string,
   onEnriched?: () => void,
 ): Promise<void> {
   const memory = await storage.getMemory(id)
   if (!memory) return
-  const updated = { ...memory, extractedText, caption: caption ?? memory.caption }
-  await storage.updateMemory(id, { extractedText, caption: updated.caption })
+  const updated = { ...memory, extractedText }
+  await storage.updateMemory(id, { extractedText })
   finishInBackground(updated).then(onEnriched)
 }
 

@@ -5,7 +5,6 @@ import { flushOutbox } from '../services/sync'
 import { ocrImage } from '../services/ocr'
 import { extractPdfText } from '../services/pdf'
 import { transcribeAudio } from '../services/audio'
-import { captionOptedIn, captionImage } from '../services/caption'
 import { isSpeechSupported, startDictation, type DictationHandle } from '../services/speech'
 import { iconForCategory } from '../services/categoryIcon'
 import { looksLikeQuestion } from '../services/intent'
@@ -162,28 +161,20 @@ export function HomeTab({
 
     if (isImage) {
       track(`Reading ${file.name}…`, (async () => {
-        // Sequential, not Promise.all: measured the captioning model's own
-        // memory footprint at ~850MB RSS once loaded (90MB -> 934MB in a
-        // direct test) — comparable to the LLM that previously crashed
-        // Safari on-device. Running it concurrently with OCR stacks an
-        // extra peak on top of an already enormous one; running them one
-        // at a time keeps the tab's peak memory to whichever step is
-        // heaviest, not their sum.
         const text = await ocrImage(file).catch(() => '')
-        const caption = captionOptedIn() ? await captionImage(file).catch(() => undefined) : undefined
-        if (text || caption) await attachExtractedText(memory.id, text, caption, onChanged)
+        if (text) await attachExtractedText(memory.id, text, onChanged)
         onChanged()
       })())
     } else if (isPdf) {
       track(`Extracting ${file.name}…`, (async () => {
         const text = await extractPdfText(file).catch(() => '')
-        if (text) await attachExtractedText(memory.id, text, undefined, onChanged)
+        if (text) await attachExtractedText(memory.id, text, onChanged)
         onChanged()
       })())
     } else if (isAudio) {
       track('Transcribing audio…', (async () => {
         const text = await transcribeAudio(file).catch(() => '')
-        if (text) await attachExtractedText(memory.id, text, undefined, onChanged)
+        if (text) await attachExtractedText(memory.id, text, onChanged)
         onChanged()
       })())
     }
