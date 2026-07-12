@@ -69,11 +69,18 @@ export interface RetrievedMemory {
 }
 
 /** All searchable text of a memory, used as embedding input. */
-export function embedText(m: Pick<Memory, 'text' | 'extractedText' | 'caption' | 'fields' | 'url' | 'type'>): string {
+export function embedText(
+  m: Pick<Memory, 'text' | 'extractedText' | 'caption' | 'fields' | 'url' | 'type' | 'tags'>,
+): string {
   const parts = [m.text]
   if (m.caption) parts.push(m.caption)
   if (m.extractedText) parts.push(m.extractedText)
   if (m.url) parts.push(m.url)
   if (m.fields) parts.push(Object.entries(m.fields).map(([k, v]) => `${k}: ${v}`).join('; '))
+  // Tags are short category words ("ticket", "booking", "movie") that often
+  // don't appear verbatim in the OCR'd/raw text but are exactly what a
+  // question like "what time is my booking" is asking about — without this,
+  // tags were purely cosmetic and never actually searchable.
+  if (m.tags?.length) parts.push(m.tags.join(' '))
   return parts.filter(Boolean).join('\n').slice(0, 2000)
 }

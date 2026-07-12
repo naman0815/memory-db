@@ -1,5 +1,5 @@
 import { storage } from './storage'
-import { embed, EMBEDDING_MODEL } from './embedder'
+import { embed, EMBED_CONTENT_VERSION } from './embedder'
 import { enrichMemory } from './enrich'
 import type { Memory, MemoryType } from '../types'
 import { embedText } from '../types'
@@ -83,13 +83,17 @@ export async function attachExtractedText(
 
 async function finishInBackground(memory: Memory): Promise<void> {
   try {
-    const vector = await embed(embedText(memory))
-    await storage.updateMemory(memory.id, {
-      embedding: vector,
-      embeddingModelVersion: EMBEDDING_MODEL,
-    })
+    // Enrich first (tags, fields, etc.) so the embedding below is computed
+    // from embedText() with tags already present — otherwise tags added by
+    // enrichMemory would never make it into the vector at all.
     const changes = await enrichMemory(memory)
-    await storage.updateMemory(memory.id, changes)
+    const enriched = { ...memory, ...changes }
+    const vector = await embed(embedText(enriched))
+    await storage.updateMemory(memory.id, {
+      ...changes,
+      embedding: vector,
+      embeddingModelVersion: EMBED_CONTENT_VERSION,
+    })
   } catch {
     // embedPending() in the retriever retries embedding; enrichment is best-effort
   }

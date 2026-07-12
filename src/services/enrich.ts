@@ -173,7 +173,12 @@ export async function enrichMemory(memory: Memory): Promise<Partial<Memory>> {
   if (!memory.tags?.length) {
     const contentTags = contentCategoryTags(searchable)
     const fallbackTags = (await llmTags(searchable)) ?? heuristicTags(searchable)
-    changes.tags = [...contentTags, ...fallbackTags.filter((t) => !contentTags.includes(t))].slice(0, 4)
+    // Reject fallback tags that are just a stem/prefix of a content tag
+    // already added ("book" next to "booking") — same category, redundant word.
+    const distinctFallback = fallbackTags.filter(
+      (t) => !contentTags.some((ct) => ct.startsWith(t) || t.startsWith(ct)),
+    )
+    changes.tags = [...contentTags, ...distinctFallback].slice(0, 4)
   }
   if (!memory.category) {
     const tags = changes.tags ?? memory.tags

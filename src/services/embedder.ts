@@ -2,6 +2,12 @@ import { pipeline, type FeatureExtractionPipeline } from '@huggingface/transform
 
 export const EMBEDDING_MODEL = 'Xenova/all-MiniLM-L6-v2'
 
+// Stamped on every memory as embeddingModelVersion. Distinct from EMBEDDING_MODEL
+// (the actual HF model id, passed to pipeline()) so bumping the embedText() shape
+// — e.g. adding tags into the embedded content — can force a re-embed of existing
+// rows without needing a real model change.
+export const EMBED_CONTENT_VERSION = `${EMBEDDING_MODEL}+tags-v1`
+
 let embedderPromise: Promise<FeatureExtractionPipeline> | null = null
 
 /** Lazy singleton — the ~25MB model downloads on first use, then loads from cache. */

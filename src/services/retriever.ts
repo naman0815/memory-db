@@ -1,6 +1,6 @@
 import * as chrono from 'chrono-node'
 import { storage } from './storage'
-import { embed, cosineSimilarity, EMBEDDING_MODEL } from './embedder'
+import { embed, cosineSimilarity, EMBED_CONTENT_VERSION } from './embedder'
 import type { Memory, RetrievedMemory } from '../types'
 import { embedText } from '../types'
 
@@ -14,13 +14,13 @@ const SCORE_THRESHOLD = 0.35
 export async function embedPending(): Promise<void> {
   const all = await storage.getAllMemories()
   const pending = all.filter(
-    (m) => !m.embedding || m.embeddingModelVersion !== EMBEDDING_MODEL,
+    (m) => !m.embedding || m.embeddingModelVersion !== EMBED_CONTENT_VERSION,
   )
   for (const m of pending) {
     const vector = await embed(embedText(m))
     await storage.updateMemory(m.id, {
       embedding: vector,
-      embeddingModelVersion: EMBEDDING_MODEL,
+      embeddingModelVersion: EMBED_CONTENT_VERSION,
     })
   }
 }
@@ -65,17 +65,36 @@ function inRange(m: Memory, range: DateRange): boolean {
   return t >= range.start && t < range.end
 }
 
+/** Word-boundary tokens from a question, for literal tag matching. */
+function questionWords(question: string): string[] {
+  return question.toLowerCase().match(/[a-z]{3,}/g) ?? []
+}
+
+/**
+ * A literal tag hit ("booking" tag, "what time is my booking") is a stronger
+ * signal than embedding similarity — tags are short category words that can
+ * sit below the semantic threshold even after being folded into the
+ * embedding. Boost (rather than replace) so ranking among multiple tag hits
+ * still reflects semantic relevance.
+ */
+function tagMatchBoost(memory: Memory, words: string[]): number {
+  if (!memory.tags?.length) return 0
+  const tags = memory.tags.map((t) => t.toLowerCase())
+  return words.some((w) => tags.includes(w)) ? 0.3 : 0
+}
+
 export async function search(question: string): Promise<RetrievedMemory[]> {
   await embedPending()
   const { rest, range } = parseTimeFilter(question)
   const queryVector = await embed(rest)
   const all = await storage.getAllMemories()
   const candidates = range ? all.filter((m) => inRange(m, range)) : all
+  const words = questionWords(question)
 
   const scored: RetrievedMemory[] = []
   for (const memory of candidates) {
     if (!memory.embedding) continue
-    const score = cosineSimilarity(queryVector, toFloat32(memory.embedding))
+    const score = cosineSimilarity(queryVector, toFloat32(memory.embedding)) + tagMatchBoost(memory, words)
     if (score >= SCORE_THRESHOLD) scored.push({ memory, score })
   }
   scored.sort((a, b) => b.score - a.score)
