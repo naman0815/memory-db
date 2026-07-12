@@ -47,6 +47,39 @@
   }
 }
 
+/* Explicit toggle in Settings stamps data-theme on <html> (see
+   services/theme.ts) — this always wins over the OS preference below. */
+:root[data-theme='dark'] {
+  --bg: #1b1a17;
+  --card-bg: #242320;
+  --text: #ece7db;
+  --text-muted: #a99f89;
+  --text-muted-2: #cbbfa0;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --accent-bg: rgba(201, 168, 91, 0.22);
+  --accent-active-bg: #3a331f;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+/* No explicit choice saved yet — follow the OS/browser preference. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-theme='dark']) {
+    --bg: #1b1a17;
+    --card-bg: #242320;
+    --text: #ece7db;
+    --text-muted: #a99f89;
+    --text-muted-2: #cbbfa0;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.22);
+    --accent-bg: rgba(201, 168, 91, 0.22);
+    --accent-active-bg: #3a331f;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+
 #root {
   width: 100%;
   max-width: 480px;

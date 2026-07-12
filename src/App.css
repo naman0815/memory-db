@@ -975,6 +975,28 @@ img.memory-media {
   }
 }
 
+.segmented {
+  display: flex;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 3px;
+}
+
+.settings-card .segmented button {
+  flex: 1 1 0;
+  padding: 7px 0;
+  background: none;
+  border-radius: 9px;
+  align-self: stretch;
+  text-align: center;
+
+  &.active {
+    background: var(--accent);
+  }
+}
+
 .sync-code-row {
   display: flex;
   align-items: center;

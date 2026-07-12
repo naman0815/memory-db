@@ -17,6 +17,16 @@
       href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400&display=swap"
     />
     <title>Brain 2</title>
+    <script>
+      // Runs before first paint so an explicit dark-mode choice applies
+      // immediately — waiting for React to mount would flash the light
+      // theme first. No-ops (leaves prefers-color-scheme in charge) when
+      // the user hasn't set an explicit choice.
+      try {
+        var t = localStorage.getItem('theme')
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

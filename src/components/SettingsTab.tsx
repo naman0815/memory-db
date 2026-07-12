@@ -3,6 +3,7 @@ import { syncConfigured, generateSyncCode, setSyncCode, clearSyncCode, restoreFr
 import { embedPending } from '../services/retriever'
 import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
 import { isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
+import { getThemePreference, setThemePreference, type ThemePreference } from '../services/theme'
 import { Toggle } from './Toggle'
 import { Icon } from './icons'
 
@@ -28,6 +29,7 @@ export function SettingsTab({
   onEnableLlm: () => void
 }) {
   const [name, setName] = useState(userName)
+  const [theme, setTheme] = useState<ThemePreference>(getThemePreference)
   const [enteredCode, setEnteredCode] = useState('')
   const [newCode, setNewCode] = useState<string | null>(null)
   const [revealCode, setRevealCode] = useState(false)
@@ -100,8 +102,31 @@ export function SettingsTab({
     }
   }
 
+  function handleThemeChange(pref: ThemePreference) {
+    setThemePreference(pref)
+    setTheme(pref)
+  }
+
   return (
     <div className="home tab-page">
+      <div className="home-section-head">
+        <h2>Appearance</h2>
+      </div>
+      <div className="settings-card">
+        <div className="segmented">
+          {(['light', 'dark', 'system'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={theme === option ? 'active' : ''}
+              onClick={() => handleThemeChange(option)}
+            >
+              {option === 'system' ? 'System' : option === 'light' ? 'Light' : 'Dark'}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="home-section-head">
         <h2>Your name</h2>
       </div>
