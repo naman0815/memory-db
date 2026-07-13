@@ -396,6 +396,7 @@ export function HomeTab({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="What's on your mind? (or ask a question)"
+            aria-label="What's on your mind?"
           />
           <div className="home-composer-row">
             <button

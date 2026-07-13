@@ -17,14 +17,15 @@ export function MaskedText({ text }: { text: string }) {
             type="button"
             className="secret-span"
             aria-label={revealed.has(i) ? 'Hide value' : 'Reveal value'}
-            onClick={() =>
+            onClick={(e) => {
+              e.stopPropagation()
               setRevealed((r) => {
                 const next = new Set(r)
                 if (next.has(i)) next.delete(i)
                 else next.add(i)
                 return next
               })
-            }
+            }}
           >
             {revealed.has(i) ? seg.text : '••••••••'}
           </button>

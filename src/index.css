@@ -9,7 +9,10 @@
   --bg: #ede7db;
   --card-bg: #f6f2e7;
   --text: #2b2620;
-  --text-muted: #948a72;
+  /* #706555 — darkened from the original #948a72, which measured ~3:1
+     against both --bg and --card-bg in light mode (fails WCAG AA's 4.5:1
+     floor for this text size). This clears 4.5:1 against both. */
+  --text-muted: #706555;
   --text-muted-2: #5b5138;
   --border: rgba(43, 38, 32, 0.1);
   --border-strong: rgba(43, 38, 32, 0.22);
@@ -19,6 +22,12 @@
   --send-fg: #efeae0;
   /* Brand terracotta — fixed across both themes, not tied to --text. */
   --icon-color: #de7356;
+  /* Text color for buttons filled with --icon-color. Deliberately NOT
+     var(--text) — --icon-color doesn't change between themes, so pairing
+     it with theme-flipping text meant dark mode put light cream text on
+     mid-tone terracotta (~2.55:1, fails AA). A fixed dark ink passes
+     AA against terracotta in both themes (~4.76:1). */
+  --btn-text: #2b2620;
   --shadow: 0 10px 30px rgba(30, 25, 15, 0.14);
 
   --serif: 'EB Garamond', serif;
@@ -74,8 +83,8 @@
     --text-muted-2: #cbbfa0;
     --border: rgba(255, 255, 255, 0.1);
     --border-strong: rgba(255, 255, 255, 0.22);
-    --accent-bg: rgba(201, 168, 91, 0.22);
-    --accent-active-bg: #3a331f;
+    --accent-bg: rgba(222, 115, 86, 0.22);
+    --accent-active-bg: #3a261f;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
   }

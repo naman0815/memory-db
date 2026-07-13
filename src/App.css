@@ -243,6 +243,12 @@ button:active:not(:disabled),
   resize: none;
   overflow-y: auto;
   max-height: 160px;
+
+  &:focus-visible {
+    outline: 2px solid var(--icon-color);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 .home-composer-row {
@@ -258,8 +264,9 @@ button:active:not(:disabled),
 }
 
 .home-round-btn {
-  width: 34px;
-  height: 34px;
+  /* 44px minimum touch target (WCAG 2.5.5) — was 34px */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -303,7 +310,7 @@ button:active:not(:disabled),
     border-radius: 999px;
     border: none;
     background: var(--icon-color);
-    color: var(--text);
+    color: var(--btn-text);
     cursor: pointer;
     margin-top: 8px;
 
@@ -348,29 +355,6 @@ header {
     margin: 4px 0 0;
     opacity: 0.7;
     font-size: 15px;
-  }
-}
-
-.tabs {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 12px;
-
-  button {
-    font-size: 15px;
-    padding: 6px 18px;
-    border-radius: 999px;
-    border: 1px solid var(--border, #444);
-    background: none;
-    color: inherit;
-    cursor: pointer;
-
-    &.active {
-      background: var(--icon-color);
-      border-color: var(--icon-color);
-      color: var(--text);
-    }
   }
 }
 
@@ -450,8 +434,11 @@ header {
 
 .brain-pin-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  right: 0;
+  /* 44px minimum touch target (WCAG 2.5.5) — was a 4px-padded ~23px box */
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,7 +446,6 @@ header {
   border: none;
   opacity: 0.3;
   cursor: pointer;
-  padding: 4px;
   line-height: 1;
 
   &.pinned {
@@ -481,7 +467,7 @@ header {
   border: none;
   cursor: pointer;
   background: var(--icon-color);
-  color: var(--text);
+  color: var(--btn-text);
 
   &:disabled {
     opacity: 0.4;
@@ -560,34 +546,6 @@ header {
   margin-bottom: 16px;
 }
 
-.capture-actions {
-  display: flex;
-  gap: 10px;
-
-  button {
-    flex: 1;
-  }
-
-  .mic {
-    flex: 0 0 auto;
-    background: none;
-    border: 1px solid var(--border, #444);
-    color: inherit;
-
-    &.recording {
-      border-color: #e5484d;
-      color: #e5484d;
-      animation: pulse 1.2s ease-in-out infinite;
-    }
-  }
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.5;
-  }
-}
-
 .memory-media {
   max-width: 100%;
   border-radius: 8px;
@@ -664,7 +622,9 @@ img.memory-media {
   color: var(--icon-color);
   opacity: 0.7;
   cursor: pointer;
-  padding: 2px;
+  /* 44px minimum touch target (WCAG 2.5.5) — was 2px padding (~20px box) */
+  min-width: 44px;
+  min-height: 44px;
   line-height: 0;
   flex-shrink: 0;
 }
@@ -751,60 +711,6 @@ img.memory-media {
   }
 }
 
-.capture {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 32px;
-
-  input[type='email'] {
-    font: inherit;
-    font-size: 16px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border, #444);
-    background: var(--card-bg);
-    color: inherit;
-  }
-
-  .secondary {
-    background: none;
-    border: 1px solid var(--border, #444);
-    color: inherit;
-  }
-
-  textarea {
-    font: inherit;
-    font-size: 16px;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border, #444);
-    background: var(--card-bg);
-    color: inherit;
-    resize: vertical;
-
-    &:focus-visible {
-      outline: 2px solid var(--accent, #747bff);
-      outline-offset: 1px;
-    }
-  }
-
-  button {
-    font-size: 16px;
-    padding: 10px;
-    border-radius: 10px;
-    border: none;
-    background: var(--accent);
-    color: var(--text);
-    cursor: pointer;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-  }
-}
-
 .memory-list {
   h2 {
     font-size: 15px;
@@ -822,6 +728,10 @@ img.memory-media {
 
 .memory-card {
   position: relative;
+  /* Was transparent (sat directly on page --bg) — .home-tile/.home-hcard
+     fill with --card-bg for the same "a memory" concept; unifying so both
+     tabs render the same card treatment. */
+  background: var(--card-bg);
   border: 1px solid var(--border, #444);
   border-radius: 10px;
   padding: 12px 14px;
@@ -839,7 +749,10 @@ img.memory-media {
     justify-content: space-between;
     align-items: center;
     font-size: 12px;
-    opacity: 0.6;
+    /* Fixed muted color, not opacity over a variable background — opacity
+       math against --card-bg measured ~3.8:1 in light mode, below AA's
+       4.5:1 floor. --text-muted is calibrated to clear 4.5:1 on its own. */
+    color: var(--text-muted);
   }
 
   .memory-meta:first-child {
@@ -849,12 +762,15 @@ img.memory-media {
 
 .card-delete {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  right: 0;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  /* 44px minimum touch target (WCAG 2.5.5) — was 4px padding (~21px box) */
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -898,10 +814,12 @@ img.memory-media {
   button {
     font-size: 14px;
     padding: 9px 16px;
-    border-radius: 10px;
+    /* Pill radius — unified with .home-mode-btn/.memory-detail-actions so
+       "primary action" reads as the same shape everywhere in the app. */
+    border-radius: 999px;
     border: none;
     background: var(--icon-color);
-    color: var(--text);
+    color: var(--btn-text);
     cursor: pointer;
     align-self: flex-start;
 
@@ -913,12 +831,14 @@ img.memory-media {
     &.secondary {
       background: none;
       border: 1px solid var(--border-strong);
+      color: var(--text);
     }
   }
 
   button.icon-btn-inline {
     padding: 2px;
     background: none;
+    color: var(--icon-color);
     align-self: center;
   }
 
@@ -948,12 +868,14 @@ img.memory-media {
   flex: 1 1 0;
   padding: 7px 0;
   background: none;
+  color: var(--text);
   border-radius: 9px;
   align-self: stretch;
   text-align: center;
 
   &.active {
     background: var(--icon-color);
+    color: var(--btn-text);
   }
 }
 
@@ -1187,10 +1109,11 @@ img.memory-media {
   button {
     flex: 1;
     padding: 12px;
-    border-radius: 10px;
+    /* Pill radius — unified with .home-mode-btn/.settings-card button. */
+    border-radius: 999px;
     border: none;
     background: var(--icon-color);
-    color: var(--text);
+    color: var(--btn-text);
     cursor: pointer;
     font: inherit;
     font-size: 15px;
@@ -1207,10 +1130,14 @@ img.memory-media {
     &.secondary {
       background: none;
       border: 1px solid var(--border-strong);
+      color: var(--text);
     }
 
     &.danger {
-      background: #e5484d;
+      /* #c93f44, darker than the original #e5484d — white text on the old
+         red measured ~3.91:1, below WCAG AA's 4.5:1 floor. This clears
+         ~4.9:1, in both themes (the pairing is hardcoded, not tokenized). */
+      background: #c93f44;
       color: #fff;
     }
   }
