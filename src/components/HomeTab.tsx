@@ -64,6 +64,8 @@ export function HomeTab({
   const [genError, setGenError] = useState<string | null>(null)
 
   const [digest, setDigest] = useState<Digest | null>(null)
+  const [digestExiting, setDigestExiting] = useState(false)
+  const [linkSuggestionExiting, setLinkSuggestionExiting] = useState(false)
   const [upcoming, setUpcoming] = useState<Memory[]>([])
   const [linkSuggestion, setLinkSuggestion] = useState<{ label: string; related: Memory } | null>(null)
 
@@ -120,6 +122,24 @@ export function HomeTab({
     setAnswer(null)
     setResults(null)
     setGenError(null)
+  }
+
+  // Fades the banner out before actually removing it — matches the fade-in
+  // it already gets on mount instead of an instant cut on dismiss.
+  function dismissDigest() {
+    setDigestExiting(true)
+    setTimeout(() => {
+      setDigest(null)
+      setDigestExiting(false)
+    }, 150)
+  }
+
+  function dismissLinkSuggestion() {
+    setLinkSuggestionExiting(true)
+    setTimeout(() => {
+      setLinkSuggestion(null)
+      setLinkSuggestionExiting(false)
+    }, 150)
   }
 
   /**
@@ -241,7 +261,7 @@ export function HomeTab({
       </div>
 
       {digest && (
-        <div className="digest-banner">
+        <div className={`digest-banner ${digestExiting ? 'exiting' : ''}`}>
           <p>
             {digest.recentCount} new {digest.recentCount === 1 ? 'memory' : 'memories'} this week ·{' '}
             {digest.totalCount} total
@@ -253,16 +273,16 @@ export function HomeTab({
             )}
             {digest.topTags.length > 0 && <> · mostly {digest.topTags.slice(0, 3).join(', ')}</>}
           </p>
-          <button onClick={() => setDigest(null)}>Dismiss</button>
+          <button onClick={dismissDigest}>Dismiss</button>
         </div>
       )}
 
       {linkSuggestion && (
-        <div className="digest-banner">
+        <div className={`digest-banner ${linkSuggestionExiting ? 'exiting' : ''}`}>
           <p>
             "{linkSuggestion.label}" looks related to "{labelOf(linkSuggestion.related)}".
           </p>
-          <button onClick={() => setLinkSuggestion(null)}>Dismiss</button>
+          <button onClick={dismissLinkSuggestion}>Dismiss</button>
         </div>
       )}
 
@@ -424,7 +444,9 @@ export function HomeTab({
                 onClick={handleSubmit}
                 disabled={!input.trim()}
               >
-                {mode === 'ask' ? 'Ask' : 'Save'}
+                <span key={mode} className="btn-label-fade">
+                  {mode === 'ask' ? 'Ask' : 'Save'}
+                </span>
               </button>
             </div>
           </div>

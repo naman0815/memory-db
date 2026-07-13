@@ -34,8 +34,23 @@
 .memory-card,
 .answer-card,
 .digest-banner,
-.settings-card {
+.settings-card,
+.offline-banner {
   animation: cardIn var(--dur-fast) var(--ease) both;
+}
+
+/* Exit fade — for elements dismissed via a button rather than simply
+   unmounting; the component adds this class briefly before actually
+   removing itself, so entrance and exit read as a matched pair instead
+   of fade-in / instant-cut. */
+@keyframes cardOut {
+  to {
+    opacity: 0;
+  }
+}
+
+.digest-banner.exiting {
+  animation: cardOut var(--dur-fast) var(--ease) both;
 }
 
 /* Tap feedback — opacity-only for the same reason as the mount
@@ -48,7 +63,8 @@ button,
   transition:
     opacity var(--dur-fast) var(--ease),
     background var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease);
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
 }
 
 button:active:not(:disabled),
@@ -206,10 +222,25 @@ a:focus-visible {
 }
 
 
+@keyframes processingPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .home-processing {
   font-size: 13px;
-  opacity: 0.7;
   margin-top: 10px;
+  /* Fades in on mount, then pulses continuously while the background work
+     (OCR, transcription, embedding) is actually running — plain static
+     text made real async work look inert. */
+  animation:
+    cardIn var(--dur-fast) var(--ease) both,
+    processingPulse 1.6s ease-in-out infinite;
 }
 
 .home-bottom-spacer {
@@ -498,6 +529,11 @@ header {
     background: var(--send-bg);
     color: var(--send-fg);
   }
+}
+
+.btn-label-fade {
+  display: inline-block;
+  animation: cardIn var(--dur-fast) var(--ease) both;
 }
 
 .score {
@@ -1057,6 +1093,21 @@ img.memory-media {
   color: inherit;
   cursor: pointer;
   letter-spacing: 1px;
+}
+
+@keyframes revealFocus {
+  from {
+    filter: blur(4px);
+    opacity: 0.4;
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+.secret-span.revealed {
+  animation: revealFocus var(--dur-base) var(--ease) both;
 }
 
 .memory-detail-overlay {

@@ -15,7 +15,7 @@ export function MaskedText({ text }: { text: string }) {
           <button
             key={i}
             type="button"
-            className="secret-span"
+            className={`secret-span ${revealed.has(i) ? 'revealed' : ''}`}
             aria-label={revealed.has(i) ? 'Hide value' : 'Reveal value'}
             onClick={(e) => {
               e.stopPropagation()
