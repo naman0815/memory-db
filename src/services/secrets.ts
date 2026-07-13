@@ -7,7 +7,11 @@
  * asking "what's my wifi password" must still work.
  */
 
-const KEYWORD = /\b(passwords?|passwd|pwd|passcodes?|pins?|secrets?|api[\s-]?keys?|access[\s-]?codes?|otps?)\b(\s*(?:is|are|:|-|=)?\s*)(\S+)/gi
+// The connector (is/are/:/-/=) is searched for lazily rather than required
+// immediately after the keyword — "password for the router in the closet is
+// X" has real descriptive text between the keyword and its connector, so
+// requiring adjacency masked the wrong word ("for") instead of the value.
+const KEYWORD = /\b(?:passwords?|passwd|pwd|passcodes?|pins?|secrets?|api[\s-]?keys?|access[\s-]?codes?|otps?)\b(?:\s*[^.!?\n]*?(?:\bis\b|\bare\b|:|-|=))?\s*(\S+)/gi
 
 export interface TextSegment {
   text: string
@@ -21,9 +25,9 @@ export function maskSecrets(text: string): TextSegment[] {
   KEYWORD.lastIndex = 0
   let match: RegExpExecArray | null
   while ((match = KEYWORD.exec(text))) {
-    const [, keyword, sep, value] = match
-    const valueStart = match.index + keyword.length + sep.length
-    const valueEnd = valueStart + value.length
+    const value = match[1]
+    const valueEnd = match.index + match[0].length
+    const valueStart = valueEnd - value.length
     if (valueStart > lastIndex) segments.push({ text: text.slice(lastIndex, valueStart), secret: false })
     segments.push({ text: text.slice(valueStart, valueEnd), secret: true })
     lastIndex = valueEnd

@@ -642,6 +642,13 @@ img.memory-media {
   color: inherit;
   cursor: pointer;
   padding: 2px 4px;
+  /* Flex items default to min-width: auto, which stops long unbroken
+     content (e.g. an auto-generated tag from a long URL) from shrinking
+     to wrap — it silently overflows the card and gets clipped at the
+     viewport edge instead of wrapping like flex-wrap on .tags implies. */
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
 
   &.active {
     opacity: 1;
@@ -811,10 +818,14 @@ img.memory-media {
     color: var(--text-muted);
   }
 
-  .memory-meta:first-child {
-    /* Was 26px, sized for the old ~21px card-delete button — the touch-
-       target fix enlarged that button to 44px without updating this
-       clearance, so the eventDate/score text ran under the delete icon. */
+  .memory-meta:first-of-type {
+    /* :first-of-type, not :first-child — .card-delete (a <button>) renders
+       before this in the DOM whenever onDelete is passed, which is every
+       list that shows delete buttons (e.g. BrainTab). :first-child never
+       matched there, so this clearance silently never applied and the
+       eventDate/score text ran under the delete icon. Buttons don't count
+       toward the div type-count, so :first-of-type still isolates the
+       first .memory-meta correctly. */
     padding-right: 48px;
   }
 }
