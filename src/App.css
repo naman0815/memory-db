@@ -618,6 +618,35 @@ img.memory-media {
   background: var(--border);
 }
 
+.media-toggle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.memory-media.collapsed {
+  /* Compact list preview — cropping is fine here, it's just a glance.
+     object-position: top, not center: object-fit:cover's default center
+     crop on a 96px-tall box showed a blank mid-image slice, cropping out
+     the identifying content (title/header) that's usually near the top. */
+  max-height: 96px;
+  object-position: top;
+}
+
+.memory-media.expanded {
+  /* Tall ticket/receipt screenshots (QR codes, long confirmation text)
+     were getting cropped by the fixed 4:3 cover box above — showing the
+     real aspect ratio uncropped, capped by height instead of forced into
+     a ratio, is what "expanding" is actually for. */
+  aspect-ratio: auto;
+  object-fit: contain;
+  max-height: 70vh;
+}
+
 .type-badge {
   text-transform: uppercase;
   font-size: 10px;
@@ -859,26 +888,28 @@ img.memory-media {
     color: var(--text-muted);
   }
 
-  .memory-meta:first-of-type {
-    /* :first-of-type, not :first-child — .card-delete (a <button>) renders
-       before this in the DOM whenever onDelete is passed, which is every
-       list that shows delete buttons (e.g. BrainTab). :first-child never
-       matched there, so this clearance silently never applied and the
-       eventDate/score text ran under the delete icon. Buttons don't count
-       toward the div type-count, so :first-of-type still isolates the
-       first .memory-meta correctly. */
-    padding-right: 48px;
-  }
+}
+
+.memory-meta-right {
+  /* Delete button lives in the same flex row as the badge now, instead of
+     being position:absolute over it — that overlay ignored .memory-card's
+     own 12px/14px padding entirely (sitting ~1px from the border, flush
+     with the edge) while the badge/date sat properly inset, which read as
+     visibly uneven padding between the two sides of the row. Flowing it
+     inline gets the same inset for free, no clearance hack needed. */
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .card-delete {
-  position: absolute;
-  top: 0;
-  right: 0;
   background: none;
   border: none;
   cursor: pointer;
-  /* 44px minimum touch target (WCAG 2.5.5) — was 4px padding (~21px box) */
+  /* 44px minimum touch target (WCAG 2.5.5) — was 4px padding (~21px box).
+     No negative margin: sitting in normal flex flow (align-items:center
+     on .memory-meta-right) already centers it against the row, and its
+     right edge lands at the same card padding as the badge's left inset. */
   min-width: 44px;
   min-height: 44px;
   justify-content: center;
@@ -886,7 +917,6 @@ img.memory-media {
   display: flex;
   align-items: center;
   opacity: 0.6;
-  z-index: 1;
 
   &:active {
     opacity: 1;

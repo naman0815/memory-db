@@ -22,6 +22,11 @@ export function MemoryCard({
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
   const [related, setRelated] = useState<RetrievedMemory[] | null>(null)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // Ticket/receipt screenshots are often tall (QR codes, long confirmation
+  // text) — forcing them into the list's compact aspect ratio cropped real
+  // content off the bottom. Collapsed-by-default with a tap-to-expand keeps
+  // the list compact while still letting the full image render uncropped.
+  const [imageExpanded, setImageExpanded] = useState(false)
 
   useEffect(() => {
     let url: string | null = null
@@ -56,30 +61,47 @@ export function MemoryCard({
       role={onOpen ? 'button' : undefined}
       tabIndex={onOpen ? 0 : undefined}
     >
-      {onDelete && (
-        <button
-          className={`card-delete ${confirmingDelete ? 'confirming' : ''}`}
-          onClick={(e) => {
-            e.stopPropagation()
-            if (confirmingDelete) {
-              onDelete(memory.id)
-            } else {
-              setConfirmingDelete(true)
-            }
-          }}
-          aria-label={confirmingDelete ? 'Tap again to confirm delete' : 'Delete memory'}
-        >
-          <img src={ICON_DELETE} alt="" className="delete-icon-img" />
-        </button>
-      )}
-
       <div className="memory-meta">
         <span className="type-badge">{memory.type}</span>
-        {memory.eventDate && <span>{new Date(memory.eventDate).toLocaleString()}</span>}
-        {score !== undefined && score > 0 && <span className="score">{Math.round(score * 100)}% match</span>}
+        <div className="memory-meta-right">
+          {memory.eventDate && <span>{new Date(memory.eventDate).toLocaleString()}</span>}
+          {score !== undefined && score > 0 && <span className="score">{Math.round(score * 100)}% match</span>}
+          {onDelete && (
+            <button
+              className={`card-delete ${confirmingDelete ? 'confirming' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (confirmingDelete) {
+                  onDelete(memory.id)
+                } else {
+                  setConfirmingDelete(true)
+                }
+              }}
+              aria-label={confirmingDelete ? 'Tap again to confirm delete' : 'Delete memory'}
+            >
+              <img src={ICON_DELETE} alt="" className="delete-icon-img" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {isImage && mediaUrl && <img src={mediaUrl} alt={memory.caption ?? memory.text} className="memory-media" />}
+      {isImage && mediaUrl && (
+        <button
+          type="button"
+          className="media-toggle"
+          onClick={(e) => {
+            e.stopPropagation()
+            setImageExpanded((v) => !v)
+          }}
+          aria-label={imageExpanded ? 'Collapse image' : 'Expand image'}
+        >
+          <img
+            src={mediaUrl}
+            alt={memory.caption ?? memory.text}
+            className={`memory-media ${imageExpanded ? 'expanded' : 'collapsed'}`}
+          />
+        </button>
+      )}
       {isAudio && mediaUrl && <audio controls src={mediaUrl} className="memory-media" onClick={(e) => e.stopPropagation()} />}
       {isPdf && mediaUrl && (
         <a href={mediaUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
