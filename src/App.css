@@ -134,7 +134,7 @@ button:active:not(:disabled),
 
 .home-tile.active {
   background: var(--accent-active-bg);
-  border-color: var(--accent);
+  border-color: var(--icon-color);
 }
 
 .home-tile-icon,
@@ -302,7 +302,7 @@ button:active:not(:disabled),
     padding: 10px 24px;
     border-radius: 999px;
     border: none;
-    background: var(--accent);
+    background: var(--icon-color);
     color: var(--text);
     cursor: pointer;
     margin-top: 8px;
@@ -516,7 +516,7 @@ header {
     padding: 8px 16px;
     border-radius: 8px;
     border: none;
-    background: var(--accent);
+    background: var(--icon-color);
     color: var(--text);
     cursor: pointer;
   }

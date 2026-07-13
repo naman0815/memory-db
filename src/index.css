@@ -13,9 +13,8 @@
   --text-muted-2: #5b5138;
   --border: rgba(43, 38, 32, 0.1);
   --border-strong: rgba(43, 38, 32, 0.22);
-  --accent: #c9a85b;
-  --accent-bg: rgba(201, 168, 91, 0.18);
-  --accent-active-bg: #efe4c8;
+  --accent-bg: rgba(222, 115, 86, 0.16);
+  --accent-active-bg: #f8ddd3;
   --send-bg: #241f19;
   --send-fg: #efeae0;
   /* Brand terracotta — fixed across both themes, not tied to --text. */
@@ -59,8 +58,8 @@
   --text-muted-2: #cbbfa0;
   --border: rgba(255, 255, 255, 0.1);
   --border-strong: rgba(255, 255, 255, 0.22);
-  --accent-bg: rgba(201, 168, 91, 0.22);
-  --accent-active-bg: #3a331f;
+  --accent-bg: rgba(222, 115, 86, 0.22);
+  --accent-active-bg: #3a261f;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }
