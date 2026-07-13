@@ -19,7 +19,6 @@ import {
 import { upcomingMemories, buildDigest, digestDue, markDigestShown, type Digest } from '../services/digest'
 import { redactForPreview } from '../services/secrets'
 import { Icon } from './icons'
-import { MemoryCard } from './MemoryCard'
 
 function labelOf(m: Memory): string {
   const raw = m.text || m.caption || m.extractedText?.slice(0, 60) || m.type
@@ -57,6 +56,7 @@ export function HomeTab({
   const [dictation, setDictation] = useState<DictationHandle | null>(null)
   const [processing, setProcessing] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
 
   const [asking, setAsking] = useState(false)
   const [results, setResults] = useState<RetrievedMemory[] | null>(null)
@@ -76,6 +76,15 @@ export function HomeTab({
       })
     }
   }, [memories])
+
+  // Auto-grow the composer as the user types multi-line notes — Enter inserts
+  // a newline (native textarea behavior), only the Send/Ask button submits.
+  useEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+  }, [input])
 
   const byCategory = useMemo(() => {
     const groups = new Map<string, Memory[]>()
@@ -349,12 +358,23 @@ export function HomeTab({
             <p>{answer}</p>
           </div>
           {genError && <p className="llm-note">{genError}</p>}
-          <section className="memory-list">
-            {results !== null && results.length > 0 && <h2>Source memories</h2>}
-            {results?.map(({ memory, score }) => (
-              <MemoryCard key={memory.id} memory={memory} score={score} />
-            ))}
-          </section>
+          {results !== null && results.length > 0 && (
+            <div className="source-chips">
+              <span className="source-chips-label">Sources</span>
+              {results.map(({ memory, score }) => (
+                <button
+                  key={memory.id}
+                  type="button"
+                  className="source-chip"
+                  onClick={() => onOpenMemory(memory)}
+                >
+                  <Icon name={iconForCategory(memory.category || 'General')} size={13} />
+                  <span className="source-chip-label">{labelOf(memory)}</span>
+                  {score > 0 && <span className="source-chip-score">{Math.round(score * 100)}%</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -369,16 +389,12 @@ export function HomeTab({
 
       <div className="home-composer-wrap">
         <div className="home-composer">
-          <input
+          <textarea
+            ref={composerRef}
             className="home-composer-input"
+            rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                handleSubmit()
-              }
-            }}
             placeholder="What's on your mind? (or ask a question)"
           />
           <div className="home-composer-row">

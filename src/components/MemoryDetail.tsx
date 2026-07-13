@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Memory } from '../types'
 import { getBlobUrl, updateMemoryText, deleteMemory } from '../services/memories'
 import { flushOutbox } from '../services/sync'
-import { MaskedText } from './MaskedText'
 import { Icon } from './icons'
+
+const ICON_DELETE = `${import.meta.env.BASE_URL}icon-delete.png`
 
 export function MemoryDetail({
   memory,
@@ -15,14 +16,20 @@ export function MemoryDetail({
   onChanged: () => void
 }) {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
-  const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(memory.text)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     setDraft(memory.text)
-    setEditing(false)
   }, [memory.id, memory.text])
+
+  useEffect(() => {
+    // Opens straight into an editable field — no separate "edit mode" to
+    // tap into first — so autofocus here is the point, not a distraction.
+    textareaRef.current?.focus({ preventScroll: true })
+  }, [memory.id])
 
   useEffect(() => {
     let url: string | null = null
@@ -41,10 +48,18 @@ export function MemoryDetail({
   const isAudio = memory.mimeType?.startsWith('audio/')
   const isPdf = memory.mimeType === 'application/pdf'
 
-  async function handleSave() {
-    await updateMemoryText(memory.id, draft, onChanged)
-    void flushOutbox()
-    setEditing(false)
+  function saveIfChanged() {
+    if (draft !== memory.text) {
+      updateMemoryText(memory.id, draft, onChanged)
+      void flushOutbox()
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1500)
+    }
+  }
+
+  function handleClose() {
+    saveIfChanged()
+    onClose()
   }
 
   async function handleDelete() {
@@ -55,11 +70,11 @@ export function MemoryDetail({
   }
 
   return (
-    <div className="memory-detail-overlay" onClick={onClose}>
+    <div className="memory-detail-overlay" onClick={handleClose}>
       <div className="memory-detail" onClick={(e) => e.stopPropagation()}>
         <div className="memory-detail-head">
           <span className="type-badge">{memory.type}</span>
-          <button type="button" className="icon-btn-inline" aria-label="Close" onClick={onClose}>
+          <button type="button" className="icon-btn-inline" aria-label="Close" onClick={handleClose}>
             <Icon name="plus" size={20} />
           </button>
         </div>
@@ -72,32 +87,14 @@ export function MemoryDetail({
           </a>
         )}
 
-        {editing ? (
-          <div className="edit-row">
-            <textarea className="edit-textarea" value={draft} onChange={(e) => setDraft(e.target.value)} autoFocus />
-            <div className="edit-actions">
-              <button type="button" onClick={handleSave}>
-                Save
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setDraft(memory.text)
-                  setEditing(false)
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          memory.text && (
-            <p className="memory-detail-text">
-              <MaskedText text={memory.text} />
-            </p>
-          )
-        )}
+        <textarea
+          ref={textareaRef}
+          className="memory-detail-textarea"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={saveIfChanged}
+          placeholder="Note text…"
+        />
 
         {memory.caption && <p className="caption">{memory.caption}</p>}
         {memory.url && (
@@ -138,27 +135,28 @@ export function MemoryDetail({
           <span>{new Date(memory.createdAt).toLocaleString()}</span>
         </div>
 
-        {!editing && (
-          <div className="memory-detail-actions">
-            <button type="button" onClick={() => setEditing(true)}>
-              Edit
-            </button>
-            {confirmingDelete ? (
-              <>
-                <button type="button" className="danger" onClick={handleDelete}>
-                  Confirm delete
-                </button>
-                <button type="button" className="secondary" onClick={() => setConfirmingDelete(false)}>
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button type="button" className="secondary" onClick={() => setConfirmingDelete(true)}>
+        <div className="memory-detail-actions">
+          {confirmingDelete ? (
+            <>
+              <button type="button" className="danger" onClick={handleDelete}>
+                Confirm delete
+              </button>
+              <button type="button" className="secondary" onClick={() => setConfirmingDelete(false)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={saveIfChanged} disabled={draft === memory.text}>
+                {saved ? 'Saved' : 'Save'}
+              </button>
+              <button type="button" className="secondary delete-btn" onClick={() => setConfirmingDelete(true)}>
+                <img src={ICON_DELETE} alt="" className="delete-icon-img" />
                 Delete
               </button>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

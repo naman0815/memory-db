@@ -4,6 +4,8 @@ import { getBlobUrl } from '../services/memories'
 import { relatedMemories } from '../services/retriever'
 import { MaskedText } from './MaskedText'
 
+const ICON_DELETE = `${import.meta.env.BASE_URL}icon-delete.png`
+
 export function MemoryCard({
   memory,
   score,
@@ -135,7 +137,7 @@ export function MemoryCard({
               }}
               aria-label="Delete memory"
             >
-              ×
+              <img src={ICON_DELETE} alt="" className="delete-icon-img" />
             </button>
           )}
         </span>
