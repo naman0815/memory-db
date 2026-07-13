@@ -115,17 +115,16 @@ export async function getMemoryById(id: string): Promise<Memory | undefined> {
 }
 
 /**
- * User-initiated text edit (typo/OCR-mistake correction). Only re-embeds —
- * doesn't re-run enrichMemory, since tags/category/eventDate were likely
- * already set (by the user or by enrichment) and a wording tweak shouldn't
- * silently reclassify or re-tag an entry the user has already curated.
+ * Shared apply step for user-initiated edits (typo/OCR-mistake corrections).
+ * Only re-embeds — doesn't re-run enrichMemory, since tags/category/eventDate
+ * were likely already set (by the user or by enrichment) and a wording tweak
+ * shouldn't silently reclassify or re-tag an entry the user has already curated.
  */
-export async function updateMemoryText(id: string, text: string, onUpdated?: () => void): Promise<void> {
+async function applyMemoryEdit(id: string, patch: Partial<Memory>, onUpdated?: () => void): Promise<void> {
   const memory = await storage.getMemory(id)
   if (!memory) return
-  const trimmed = text.trim()
-  const updated = { ...memory, text: trimmed }
-  await storage.updateMemory(id, { text: trimmed, synced: false })
+  const updated = { ...memory, ...patch }
+  await storage.updateMemory(id, { ...patch, synced: false })
   await storage.enqueueOutbox({ id: uuid(), memoryId: id, op: 'upsert', attempts: 0 })
   try {
     const vector = await embed(embedText(updated))
@@ -134,6 +133,35 @@ export async function updateMemoryText(id: string, text: string, onUpdated?: () 
     // embedPending() retries later
   }
   onUpdated?.()
+}
+
+export async function updateMemoryText(id: string, text: string, onUpdated?: () => void): Promise<void> {
+  return applyMemoryEdit(id, { text: text.trim() }, onUpdated)
+}
+
+/** User-initiated edit of structured fields (e.g. a ticket's Booking ID/Screen/Seats). */
+export async function updateMemoryFields(
+  id: string,
+  fields: Record<string, string>,
+  onUpdated?: () => void,
+): Promise<void> {
+  return applyMemoryEdit(id, { fields }, onUpdated)
+}
+
+/**
+ * User-initiated edit of OCR/PDF-extracted raw text — labelOf() falls back
+ * to this for the tile title only when a memory has no text or caption, so
+ * setting a caption (see updateMemoryCaption) is the more direct way to fix
+ * a garbled title.
+ */
+export async function updateMemoryExtractedText(id: string, extractedText: string, onUpdated?: () => void): Promise<void> {
+  return applyMemoryEdit(id, { extractedText: extractedText.trim() }, onUpdated)
+}
+
+/** User-initiated edit of the short display title (memory.caption) — the label
+ *  shown on tiles/cards when a memory has no memory.text (e.g. a scanned ticket). */
+export async function updateMemoryCaption(id: string, caption: string, onUpdated?: () => void): Promise<void> {
+  return applyMemoryEdit(id, { caption: caption.trim() || undefined }, onUpdated)
 }
 
 export async function getBlobUrl(blobId: string): Promise<string | null> {

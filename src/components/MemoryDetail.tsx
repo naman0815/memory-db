@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Memory } from '../types'
-import { getBlobUrl, updateMemoryText, deleteMemory } from '../services/memories'
+import {
+  getBlobUrl,
+  updateMemoryText,
+  updateMemoryFields,
+  updateMemoryExtractedText,
+  updateMemoryCaption,
+  deleteMemory,
+} from '../services/memories'
 import { flushOutbox } from '../services/sync'
 import { Icon } from './icons'
 
@@ -17,6 +24,9 @@ export function MemoryDetail({
 }) {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
   const [draft, setDraft] = useState(memory.text)
+  const [fieldsDraft, setFieldsDraft] = useState(memory.fields ?? {})
+  const [extractedDraft, setExtractedDraft] = useState(memory.extractedText ?? '')
+  const [captionDraft, setCaptionDraft] = useState(memory.caption ?? '')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [saved, setSaved] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -27,8 +37,12 @@ export function MemoryDetail({
     // memory object whose .text now equals what was just saved. If this
     // effect also re-ran on memory.text changing, any further typing done
     // between the save and that refetch landing would get silently
-    // overwritten back to the saved value the moment it arrived.
+    // overwritten back to the saved value the moment it arrived. Same
+    // reasoning applies to fields.
     setDraft(memory.text)
+    setFieldsDraft(memory.fields ?? {})
+    setExtractedDraft(memory.extractedText ?? '')
+    setCaptionDraft(memory.caption ?? '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memory.id])
 
@@ -49,9 +63,32 @@ export function MemoryDetail({
   const isAudio = memory.mimeType?.startsWith('audio/')
   const isPdf = memory.mimeType === 'application/pdf'
 
+  const fieldsChanged =
+    Object.keys(fieldsDraft).length !== Object.keys(memory.fields ?? {}).length ||
+    Object.entries(fieldsDraft).some(([k, v]) => (memory.fields ?? {})[k] !== v)
+
+  const extractedChanged = extractedDraft !== (memory.extractedText ?? '')
+  const captionChanged = captionDraft !== (memory.caption ?? '')
+
   function saveIfChanged() {
+    let changed = false
     if (draft !== memory.text) {
       updateMemoryText(memory.id, draft, onChanged)
+      changed = true
+    }
+    if (fieldsChanged) {
+      updateMemoryFields(memory.id, fieldsDraft, onChanged)
+      changed = true
+    }
+    if (extractedChanged) {
+      updateMemoryExtractedText(memory.id, extractedDraft, onChanged)
+      changed = true
+    }
+    if (captionChanged) {
+      updateMemoryCaption(memory.id, captionDraft, onChanged)
+      changed = true
+    }
+    if (changed) {
       void flushOutbox()
       setSaved(true)
       setTimeout(() => setSaved(false), 1500)
@@ -80,6 +117,16 @@ export function MemoryDetail({
           </button>
         </div>
 
+        <input
+          type="text"
+          className="title-input"
+          value={captionDraft}
+          onChange={(e) => setCaptionDraft(e.target.value)}
+          onBlur={saveIfChanged}
+          placeholder="Title"
+          aria-label="Title"
+        />
+
         {isImage && mediaUrl && <img src={mediaUrl} alt={memory.caption ?? memory.text} className="memory-media" />}
         {isAudio && mediaUrl && <audio controls src={mediaUrl} className="memory-media" />}
         {isPdf && mediaUrl && (
@@ -97,18 +144,25 @@ export function MemoryDetail({
           placeholder="Note text…"
         />
 
-        {memory.caption && <p className="caption">{memory.caption}</p>}
         {memory.url && (
           <a href={memory.url} target="_blank" rel="noreferrer">
             {memory.url}
           </a>
         )}
         {memory.fields && (
-          <dl className="fields">
-            {Object.entries(memory.fields).map(([k, v]) => (
+          <dl className="fields fields-editable">
+            {Object.entries(fieldsDraft).map(([k, v]) => (
               <div key={k}>
                 <dt>{k}</dt>
-                <dd>{v}</dd>
+                <dd>
+                  <input
+                    type="text"
+                    value={v}
+                    onChange={(e) => setFieldsDraft((prev) => ({ ...prev, [k]: e.target.value }))}
+                    onBlur={saveIfChanged}
+                    aria-label={k}
+                  />
+                </dd>
               </div>
             ))}
           </dl>
@@ -119,7 +173,14 @@ export function MemoryDetail({
         {memory.extractedText && (
           <details>
             <summary>Extracted text</summary>
-            <p className="extracted">{memory.extractedText}</p>
+            <textarea
+              className="extracted-textarea"
+              value={extractedDraft}
+              onChange={(e) => setExtractedDraft(e.target.value)}
+              onBlur={saveIfChanged}
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Extracted text"
+            />
           </details>
         )}
         {memory.tags && memory.tags.length > 0 && (
@@ -148,7 +209,11 @@ export function MemoryDetail({
             </>
           ) : (
             <>
-              <button type="button" onClick={saveIfChanged} disabled={draft === memory.text}>
+              <button
+                type="button"
+                onClick={saveIfChanged}
+                disabled={draft === memory.text && !fieldsChanged && !extractedChanged && !captionChanged}
+              >
                 {saved ? 'Saved' : 'Save'}
               </button>
               <button type="button" className="secondary delete-btn" onClick={() => setConfirmingDelete(true)}>

@@ -39,7 +39,8 @@ export interface Memory {
   mimeType?: string
   /** OCR text, PDF text, or audio transcript */
   extractedText?: string
-  /** AI-generated image caption */
+  /** Short user-facing title — the label shown on tiles/cards when there's
+   *  no memory.text (e.g. a scanned ticket). Editable; not auto-generated. */
   caption?: string
   /** Parsed event/expiry date (tickets, events, deadlines) */
   eventDate?: number

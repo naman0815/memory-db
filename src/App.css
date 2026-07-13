@@ -713,6 +713,30 @@ img.memory-media {
   overflow-wrap: anywhere;
 }
 
+.extracted-textarea {
+  /* Full-opacity text, not .extracted's 0.7 — this is now an editable
+     field (like .fields-editable inputs), and muting active input text
+     risks falling under the 4.5:1 AA floor. */
+  width: 100%;
+  min-height: 80px;
+  margin-top: 6px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--card-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  overflow-wrap: anywhere;
+  resize: vertical;
+  box-sizing: border-box;
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--icon-color);
+  }
+}
+
 .fields {
   margin: 6px 0;
   font-size: 14px;
@@ -729,6 +753,23 @@ img.memory-media {
 
   dd {
     margin: 0;
+    flex: 1;
+  }
+}
+
+.fields-editable dd input {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0 0 2px;
+  min-width: 0;
+
+  &:focus-visible {
+    outline: none;
+    border-bottom-color: var(--icon-color);
   }
 }
 
@@ -1173,6 +1214,27 @@ img.memory-media {
   .icon-btn-inline {
     transform: rotate(45deg);
     opacity: 1;
+  }
+}
+
+.title-input {
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--text);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 0 0 6px;
+  margin-bottom: 12px;
+
+  &::placeholder {
+    color: var(--text-muted);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-bottom-color: var(--icon-color);
   }
 }
 
