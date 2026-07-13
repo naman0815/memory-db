@@ -821,6 +821,7 @@ img.memory-media {
 }
 
 .memory-card {
+  position: relative;
   border: 1px solid var(--border, #444);
   border-radius: 10px;
   padding: 12px 14px;
@@ -841,21 +842,33 @@ img.memory-media {
     opacity: 0.6;
   }
 
-  .delete {
-    background: none;
-    border: none;
-    color: inherit;
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
+  .memory-meta:first-child {
+    padding-right: 26px;
+  }
+}
 
-    &:hover {
-      background: rgba(255, 80, 80, 0.2);
-    }
+.card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  z-index: 1;
+
+  &:active {
+    opacity: 1;
+    background: rgba(255, 80, 80, 0.15);
+  }
+
+  .delete-icon-img {
+    width: 13px;
+    height: 13px;
   }
 }
 
@@ -887,7 +900,7 @@ img.memory-media {
     padding: 9px 16px;
     border-radius: 10px;
     border: none;
-    background: var(--accent);
+    background: var(--icon-color);
     color: var(--text);
     cursor: pointer;
     align-self: flex-start;
@@ -940,7 +953,7 @@ img.memory-media {
   text-align: center;
 
   &.active {
-    background: var(--accent);
+    background: var(--icon-color);
   }
 }
 
@@ -1051,7 +1064,7 @@ img.memory-media {
 }
 
 .toggle-switch input:checked + .toggle-track {
-  background: var(--accent);
+  background: var(--icon-color);
 }
 
 .toggle-switch input:checked + .toggle-track .toggle-thumb {
@@ -1069,7 +1082,7 @@ img.memory-media {
 }
 
 .toggle-switch input:focus-visible + .toggle-track {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--icon-color);
   outline-offset: 2px;
 }
 

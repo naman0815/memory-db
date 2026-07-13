@@ -46,6 +46,19 @@ export function MemoryCard({
       role={onOpen ? 'button' : undefined}
       tabIndex={onOpen ? 0 : undefined}
     >
+      {onDelete && (
+        <button
+          className="card-delete"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(memory.id)
+          }}
+          aria-label="Delete memory"
+        >
+          <img src={ICON_DELETE} alt="" className="delete-icon-img" />
+        </button>
+      )}
+
       <div className="memory-meta">
         <span className="type-badge">{memory.type}</span>
         {memory.eventDate && <span>{new Date(memory.eventDate).toLocaleString()}</span>}
@@ -128,18 +141,6 @@ export function MemoryCard({
           >
             {related ? 'hide related' : 'related'}
           </button>
-          {onDelete && (
-            <button
-              className="delete"
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete(memory.id)
-              }}
-              aria-label="Delete memory"
-            >
-              <img src={ICON_DELETE} alt="" className="delete-icon-img" />
-            </button>
-          )}
         </span>
       </div>
 

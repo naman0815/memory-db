@@ -26,12 +26,6 @@ export function MemoryDetail({
   }, [memory.id, memory.text])
 
   useEffect(() => {
-    // Opens straight into an editable field — no separate "edit mode" to
-    // tap into first — so autofocus here is the point, not a distraction.
-    textareaRef.current?.focus({ preventScroll: true })
-  }, [memory.id])
-
-  useEffect(() => {
     let url: string | null = null
     if (memory.blobId) {
       getBlobUrl(memory.blobId).then((u) => {
