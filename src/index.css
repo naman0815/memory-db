@@ -28,6 +28,11 @@
      mid-tone terracotta (~2.55:1, fails AA). A fixed dark ink passes
      AA against terracotta in both themes (~4.76:1). */
   --btn-text: #2b2620;
+  /* Error-message text color — distinct hex per theme (not a fixed value)
+     because a red dark enough to pass 4.5:1 on cream is nowhere near
+     light enough to pass 4.5:1 on near-black; needs the same per-theme
+     treatment as --text itself. */
+  --error-text: #a5333a;
   --shadow: 0 10px 30px rgba(30, 25, 15, 0.14);
 
   --serif: 'EB Garamond', serif;
@@ -69,6 +74,7 @@
   --border-strong: rgba(255, 255, 255, 0.22);
   --accent-bg: rgba(222, 115, 86, 0.22);
   --accent-active-bg: #3a261f;
+  --error-text: #e17075;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }
@@ -85,6 +91,7 @@
     --border-strong: rgba(255, 255, 255, 0.22);
     --accent-bg: rgba(222, 115, 86, 0.22);
     --accent-active-bg: #3a261f;
+    --error-text: #e17075;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
   }

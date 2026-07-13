@@ -7,6 +7,11 @@ import { getThemePreference, setThemePreference, type ThemePreference } from '..
 import { Toggle } from './Toggle'
 import { Icon } from './icons'
 
+interface Status {
+  text: string
+  error?: boolean
+}
+
 export function SettingsTab({
   syncCode,
   onSyncCodeChange,
@@ -33,11 +38,11 @@ export function SettingsTab({
   const [enteredCode, setEnteredCode] = useState('')
   const [newCode, setNewCode] = useState<string | null>(null)
   const [revealCode, setRevealCode] = useState(false)
-  const [status, setStatus] = useState<string | null>(null)
+  const [status, setStatus] = useState<Status | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [lockEnabled, setLockEnabled] = useState(isLockEnabled())
-  const [lockStatus, setLockStatus] = useState<string | null>(null)
+  const [lockStatus, setLockStatus] = useState<Status | null>(null)
 
   useEffect(() => {
     isBiometricAvailable().then(setBiometricAvailable)
@@ -49,14 +54,14 @@ export function SettingsTab({
       try {
         await enableLock()
         setLockEnabled(true)
-        setLockStatus("You're all set — Face ID will ask next time you open the app.")
+        setLockStatus({ text: "You're all set — Face ID will ask next time you open the app." })
       } catch (err) {
-        setLockStatus(`Couldn't turn this on: ${(err as Error).message}`)
+        setLockStatus({ text: `Couldn't turn this on: ${(err as Error).message}`, error: true })
       }
     } else {
       disableLock()
       setLockEnabled(false)
-      setLockStatus('Face ID lock turned off.')
+      setLockStatus({ text: 'Face ID lock turned off.' })
     }
   }
 
@@ -72,13 +77,13 @@ export function SettingsTab({
     setSyncCode(enteredCode.trim())
     onSyncCodeChange(enteredCode.trim())
     setEnteredCode('')
-    setStatus('Linked. Tap "Restore from backup" to pull in memories from your other device.')
+    setStatus({ text: 'Linked. Tap "Restore from backup" to pull in memories from your other device.' })
   }
 
   function handleCopyCode() {
     if (!syncCode) return
     navigator.clipboard.writeText(syncCode).then(() => {
-      setStatus('Sync code copied to clipboard.')
+      setStatus({ text: 'Sync code copied to clipboard.' })
     })
   }
 
@@ -86,7 +91,7 @@ export function SettingsTab({
     clearSyncCode()
     onSyncCodeChange(null)
     setNewCode(null)
-    setStatus('Backup turned off on this device. Your existing backup is untouched.')
+    setStatus({ text: 'Backup turned off on this device. Your existing backup is untouched.' })
   }
 
   async function handleRestore() {
@@ -96,14 +101,14 @@ export function SettingsTab({
       const count = await restoreFromCloud()
       onChanged()
       if (count > 0) {
-        setStatus(`Restoring ${count} memories…`)
+        setStatus({ text: `Restoring ${count} memories…` })
         await embedPending()
-        setStatus(`Restored ${count} memories.`)
+        setStatus({ text: `Restored ${count} memories.` })
       } else {
-        setStatus("You're already up to date — nothing new to restore.")
+        setStatus({ text: "You're already up to date — nothing new to restore." })
       }
     } catch (err) {
-      setStatus(`Restore didn't work: ${(err as Error).message}`)
+      setStatus({ text: `Restore didn't work: ${(err as Error).message}`, error: true })
     } finally {
       setRestoring(false)
     }
@@ -120,11 +125,13 @@ export function SettingsTab({
         <h2>Appearance</h2>
       </div>
       <div className="settings-card">
-        <div className="segmented">
+        <div className="segmented" role="radiogroup" aria-label="Appearance">
           {(['light', 'dark', 'system'] as const).map((option) => (
             <button
               key={option}
               type="button"
+              role="radio"
+              aria-checked={theme === option}
               className={theme === option ? 'active' : ''}
               onClick={() => handleThemeChange(option)}
             >
@@ -145,6 +152,7 @@ export function SettingsTab({
           onChange={(e) => setName(e.target.value)}
           onBlur={() => onNameChange(name)}
           placeholder="What should we call you?"
+          aria-label="Your name"
         />
       </div>
 
@@ -205,6 +213,7 @@ export function SettingsTab({
             value={enteredCode}
             onChange={(e) => setEnteredCode(e.target.value)}
             placeholder="Paste your sync code"
+            aria-label="Sync code from another device"
           />
           <button onClick={handleLinkDevice} disabled={!enteredCode.trim()}>
             Link this device
@@ -249,7 +258,7 @@ export function SettingsTab({
           </button>
         </div>
       )}
-      {status && <p className="settings-hint">{status}</p>}
+      {status && <p className={`settings-hint ${status.error ? 'error' : ''}`}>{status.text}</p>}
 
       <div className="home-section-head">
         <h2>Privacy</h2>
@@ -268,7 +277,7 @@ export function SettingsTab({
       ) : (
         <p className="settings-hint">Face ID isn't available on this device or browser.</p>
       )}
-      {lockStatus && <p className="settings-hint">{lockStatus}</p>}
+      {lockStatus && <p className={`settings-hint ${lockStatus.error ? 'error' : ''}`}>{lockStatus.text}</p>}
 
       {storageUsage && <p className="settings-hint">{storageUsage}</p>}
     </div>

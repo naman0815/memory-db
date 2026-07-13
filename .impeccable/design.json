@@ -66,7 +66,7 @@
       "refersTo": "button-secondary",
       "description": "Cancel / Turn-off-backup / non-active segmented options.",
       "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
-      "css": ".ds-btn-secondary { background: none; color: #2b2620; border: 1px solid rgba(43,38,32,0.22); border-radius: 10px; padding: 10px 16px; font-family: 'EB Garamond', serif; font-size: 14px; cursor: pointer; transition: opacity 120ms cubic-bezier(0.2,0.8,0.2,1); } .ds-btn-secondary:active { opacity: 0.7; }"
+      "css": ".ds-btn-secondary { background: none; color: #2b2620; border: 1px solid rgba(43,38,32,0.22); border-radius: 999px; padding: 10px 16px; font-family: 'EB Garamond', serif; font-size: 14px; cursor: pointer; transition: opacity 120ms cubic-bezier(0.2,0.8,0.2,1); } .ds-btn-secondary:active { opacity: 0.7; }"
     },
     {
       "name": "Danger Button",
@@ -74,7 +74,7 @@
       "refersTo": "button-danger",
       "description": "The one deliberate exception to the single-accent rule — destructive actions never use terracotta.",
       "html": "<button class=\"ds-btn-danger\">Confirm delete</button>",
-      "css": ".ds-btn-danger { background: #e5484d; color: #fff; border: none; border-radius: 10px; padding: 12px; font-family: 'EB Garamond', serif; font-size: 15px; cursor: pointer; }"
+      "css": ".ds-btn-danger { background: #c93f44; color: #fff; border: none; border-radius: 999px; padding: 12px; font-family: 'EB Garamond', serif; font-size: 15px; cursor: pointer; }"
     },
     {
       "name": "Category Tile",
@@ -90,7 +90,7 @@
       "refersTo": "card",
       "description": "Brain tab list item — type badge, text, tags, top-right delete.",
       "html": "<div class=\"ds-memory-card\"><div class=\"ds-memory-meta\"><span class=\"ds-type-badge\">Note</span></div><p class=\"ds-memory-text\">Wifi password is Xk29!qz</p><div class=\"ds-tags\"><span class=\"ds-tag\">#wifi</span><span class=\"ds-tag\">#password</span></div></div>",
-      "css": ".ds-memory-card { position: relative; border: 1px solid rgba(43,38,32,0.1); border-radius: 10px; padding: 12px 14px; background: transparent; font-family: 'EB Garamond', serif; color: #2b2620; } .ds-memory-meta { display: flex; font-size: 12px; opacity: 0.6; margin-bottom: 6px; } .ds-type-badge { text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; border: 1px solid rgba(43,38,32,0.22); border-radius: 4px; padding: 1px 5px; } .ds-memory-text { margin: 0 0 8px; } .ds-tags { display: flex; gap: 6px; } .ds-tag { font-size: 12px; opacity: 0.7; }"
+      "css": ".ds-memory-card { position: relative; border: 1px solid rgba(43,38,32,0.1); border-radius: 10px; padding: 12px 14px; background: #f6f2e7; font-family: 'EB Garamond', serif; color: #2b2620; } .ds-memory-meta { display: flex; font-size: 12px; color: #706555; margin-bottom: 6px; } .ds-type-badge { text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; border: 1px solid rgba(43,38,32,0.22); border-radius: 4px; padding: 1px 5px; } .ds-memory-text { margin: 0 0 8px; } .ds-tags { display: flex; gap: 6px; } .ds-tag { font-size: 12px; opacity: 0.7; }"
     },
     {
       "name": "Toggle Switch",

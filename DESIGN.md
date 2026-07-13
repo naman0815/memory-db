@@ -8,7 +8,7 @@ colors:
   surface-dark: "#242320"
   ink: "#2b2620"
   ink-dark: "#ece7db"
-  ink-muted: "#948a72"
+  ink-muted: "#706555"
   ink-muted-dark: "#a99f89"
   ink-muted-2: "#5b5138"
   ink-muted-2-dark: "#cbbfa0"
@@ -22,6 +22,10 @@ colors:
   terracotta-wash-active-dark: "#3a261f"
   ink-well: "#241f19"
   ink-well-fg: "#efeae0"
+  btn-text: "#2b2620"
+  error-text: "#a5333a"
+  error-text-dark: "#e17075"
+  danger: "#c93f44"
 typography:
   display:
     fontFamily: "EB Garamond, serif"
@@ -116,11 +120,13 @@ Warm neutrals carry the page; terracotta carries meaning. No blues, no purples, 
 - **Paper** (`#ede7db` light / `#1b1a17` dark): Page background. A warm off-white in light mode (the Pampas-family tone Claude's own palette uses), a warm near-black in dark — never a cool or neutral gray.
 - **Surface** (`#f6f2e7` light / `#242320` dark): Card, tile, and input backgrounds — one step lighter (light mode) or lighter-than-paper (dark mode) than the page itself, giving cards just enough lift to read as distinct without a shadow.
 - **Ink** (`#2b2620` light / `#ece7db` dark): Primary text. Warm near-black on paper; warm near-white on dark paper — never pure `#000`/`#fff`.
-- **Ink Muted** (`#948a72` light / `#a99f89` dark): Secondary text — tile subtitles, timestamps, hints.
+- **Ink Muted** (`#706555` light / `#a99f89` dark): Secondary text — tile subtitles, timestamps, hints. (Darkened from an earlier `#948a72`, which measured ~3:1 against both Paper and Surface in light mode — below WCAG AA's 4.5:1 floor for this text size.)
 - **Ink Muted 2** (`#5b5138` light / `#cbbfa0` dark): A second muted step, used sparingly (e.g. restore-backup hint copy) where Ink Muted is too light against its background.
 - **Hairline** (`rgba(43,38,32,0.1)` light / `rgba(255,255,255,0.1)` dark): The default border — nearly invisible, just enough to separate a card from the page.
 - **Hairline, Strong** (`rgba(43,38,32,0.22)` light / `rgba(255,255,255,0.22)` dark): Used for interactive borders (segmented control, inputs, secondary buttons) that need to read as a boundary, not just a seam.
 - **Ink Well** (`#241f19`) / **Ink Well Foreground** (`#efeae0`): A fixed dark circle (not theme-dependent) behind the composer's send icon — the one place a near-black fill appears deliberately, for contrast against the terracotta/paper field around it.
+- **Button Text** (`#2b2620`, fixed across both themes): Text color for anything filled with Terracotta. Deliberately not Ink — Ink flips to near-white in dark mode, which would put light text on a background that doesn't get any darker, failing contrast (~2.55:1). A fixed dark ink passes AA against Terracotta in both themes (~4.76:1).
+- **Error Text** (`#a5333a` light / `#e17075` dark): Status-message text for a failed action (e.g. "Restore didn't work"). Needs its own per-theme pair, same reasoning as Button Text — a red dark enough to read on Paper is nowhere near light enough to read on dark Paper.
 
 ### Named Rules
 
@@ -165,11 +171,11 @@ Soft and unhurried: generous rounding, gentle opacity-based tap feedback (never 
 
 ### Buttons
 
-- **Shape:** Primary actions are full pills (`border-radius: 999px`); secondary/outline buttons and in-card actions use 10px radius.
-- **Primary:** Terracotta fill (`--icon-color`), ink-colored text, no border. Used for Save, Restore-from-backup, Turn-on-backup, and the segmented control's active state.
+- **Shape:** Every button is a full pill (`border-radius: 999px`) — Save, Settings actions, and the note-editor's Save/Delete all unified to this shape; an earlier inconsistency (10px radius in two of the three places) was corrected during the app-wide polish pass.
+- **Primary:** Terracotta fill (`--icon-color`), Button Text (`--btn-text`, fixed dark ink in both themes — see Colors), no border. Used for Save, Restore-from-backup, Turn-on-backup, and the segmented control's active state.
 - **Secondary/Ghost:** Transparent background, `border: 1px solid var(--border-strong)`, ink-colored text — "Cancel," "Turn off backup," the non-active segmented options.
-- **Danger:** The one deliberate exception to the One Accent Rule — delete-confirmation uses `#e5484d` (red), never terracotta, so a destructive action is never visually confusable with a normal primary action.
-- **Icon-only:** 34px circular hit target, transparent background, terracotta glyph (`.home-round-btn`, `.icon-btn-inline`) — used for plus/mic/eye/close.
+- **Danger:** The one deliberate exception to the One Accent Rule — delete-confirmation uses `#c93f44` (white text on this measures ~4.9:1; the original `#e5484d` only cleared ~3.9:1), never terracotta, so a destructive action is never visually confusable with a normal primary action. Every destructive action — the quick delete on a Brain-tab card and the note editor's Delete — requires the same two-tap confirm; there's no single-tap delete anywhere in the system.
+- **Icon-only:** 44px minimum hit target (WCAG 2.5.5), transparent background, terracotta glyph (`.home-round-btn`, `.icon-btn-inline`) — used for plus/mic/eye/close. The glyph itself stays visually small; only the invisible tappable area is 44px.
 
 ### Chips (Tags)
 

@@ -21,6 +21,7 @@ export function MemoryCard({
 }) {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
   const [related, setRelated] = useState<RetrievedMemory[] | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   useEffect(() => {
     let url: string | null = null
@@ -35,6 +36,15 @@ export function MemoryCard({
     }
   }, [memory.blobId])
 
+  // Auto-revert an unconfirmed delete tap — matches MemoryDetail's own
+  // tap-to-confirm delete instead of leaving this quick action as the one
+  // place a memory can be deleted with zero confirmation.
+  useEffect(() => {
+    if (!confirmingDelete) return
+    const t = setTimeout(() => setConfirmingDelete(false), 2500)
+    return () => clearTimeout(t)
+  }, [confirmingDelete])
+
   const isImage = memory.mimeType?.startsWith('image/')
   const isAudio = memory.mimeType?.startsWith('audio/')
   const isPdf = memory.mimeType === 'application/pdf'
@@ -48,12 +58,16 @@ export function MemoryCard({
     >
       {onDelete && (
         <button
-          className="card-delete"
+          className={`card-delete ${confirmingDelete ? 'confirming' : ''}`}
           onClick={(e) => {
             e.stopPropagation()
-            onDelete(memory.id)
+            if (confirmingDelete) {
+              onDelete(memory.id)
+            } else {
+              setConfirmingDelete(true)
+            }
           }}
-          aria-label="Delete memory"
+          aria-label={confirmingDelete ? 'Tap again to confirm delete' : 'Delete memory'}
         >
           <img src={ICON_DELETE} alt="" className="delete-icon-img" />
         </button>

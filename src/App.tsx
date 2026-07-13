@@ -107,16 +107,25 @@ function App() {
 
       <nav className="main-nav">
         <div className="main-nav-left">
-          <button className={tab === 'home' ? 'active' : ''} onClick={() => setTab('home')}>
+          <button
+            className={tab === 'home' ? 'active' : ''}
+            aria-current={tab === 'home' ? 'page' : undefined}
+            onClick={() => setTab('home')}
+          >
             Home
           </button>
-          <button className={tab === 'brain' ? 'active' : ''} onClick={() => setTab('brain')}>
+          <button
+            className={tab === 'brain' ? 'active' : ''}
+            aria-current={tab === 'brain' ? 'page' : undefined}
+            onClick={() => setTab('brain')}
+          >
             Brain
           </button>
         </div>
         <button
           className={`main-nav-settings ${tab === 'settings' ? 'active' : ''}`}
           aria-label="Settings"
+          aria-current={tab === 'settings' ? 'page' : undefined}
           onClick={() => setTab('settings')}
         >
           <img src={ICON_SETTINGS} alt="" className="nav-icon-img" />

@@ -59,6 +59,21 @@ button:active:not(:disabled),
   opacity: 0.65;
 }
 
+/* Systemic focus-visible fallback — most buttons in this app never
+   customized their own focus ring, so a keyboard/switch-control user
+   tabbing through got only the browser's inconsistent default outline
+   (or nothing, on elements that reset it). One rule closes the gap
+   everywhere at once instead of patching each component. Elements that
+   already define their own (composer, toggle switch, textareas) simply
+   override this with a more specific selector. */
+button:focus-visible,
+.linkish:focus-visible,
+.tag:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--icon-color);
+  outline-offset: 2px;
+}
+
 /* Home tab — ported from Memory DB.dc.html design mock */
 .home {
   text-align: left;
@@ -790,6 +805,14 @@ img.memory-media {
     background: rgba(255, 80, 80, 0.15);
   }
 
+  /* First tap — awaiting confirmation, matches MemoryDetail's own
+     tap-to-confirm delete instead of this quick action being the one
+     place a memory can be deleted with a single, un-confirmed tap. */
+  &.confirming {
+    opacity: 1;
+    background: rgba(255, 80, 80, 0.22);
+  }
+
   .delete-icon-img {
     width: 13px;
     height: 13px;
@@ -926,6 +949,10 @@ img.memory-media {
   line-height: 1.5;
   margin: 0 0 10px;
   overflow-wrap: anywhere;
+}
+
+.settings-hint.error {
+  color: var(--error-text);
 }
 
 .toggle-row {

@@ -22,8 +22,15 @@ export function MemoryDetail({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
+    // Deliberately keyed on memory.id only, not memory.text: saving calls
+    // onChanged(), which refetches memories and hands this component a new
+    // memory object whose .text now equals what was just saved. If this
+    // effect also re-ran on memory.text changing, any further typing done
+    // between the save and that refetch landing would get silently
+    // overwritten back to the saved value the moment it arrived.
     setDraft(memory.text)
-  }, [memory.id, memory.text])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memory.id])
 
   useEffect(() => {
     let url: string | null = null

@@ -81,6 +81,7 @@ export function BrainTab({
                   <button
                     type="button"
                     className="brain-tile-main"
+                    aria-pressed={isActive}
                     onClick={() => setCategoryFilter(isActive ? null : c.name)}
                   >
                     <div className={`home-tile-icon-outline ${isActive ? 'active' : ''}`}>
@@ -108,7 +109,27 @@ export function BrainTab({
         </>
       )}
 
-      <section className="memory-list" style={{ marginTop: 20 }}>
+      {(tagFilter || categoryFilter) && (
+        <div className="home-section-head">
+          <h2>
+            {categoryFilter && `Category: ${categoryFilter}`}
+            {categoryFilter && tagFilter && ' · '}
+            {tagFilter && `#${tagFilter}`}
+          </h2>
+          <button
+            type="button"
+            className="home-view-all"
+            onClick={() => {
+              setTagFilter(null)
+              setCategoryFilter(null)
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      <section className="memory-list" style={{ marginTop: tagFilter || categoryFilter ? 0 : 20 }}>
         {byDay.map(([day, items]) => (
           <div key={day}>
             <h2>{day}</h2>
@@ -123,7 +144,13 @@ export function BrainTab({
             ))}
           </div>
         ))}
-        {filtered.length === 0 && <p className="empty">Nothing matches.</p>}
+        {filtered.length === 0 && (
+          <p className="empty">
+            {memories.length === 0
+              ? "You haven't saved anything yet — add a note, photo, or voice memo from Home."
+              : 'Nothing matches this filter.'}
+          </p>
+        )}
       </section>
     </div>
   )
