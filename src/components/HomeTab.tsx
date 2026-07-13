@@ -17,11 +17,13 @@ import {
   NOT_REMEMBERED,
 } from '../services/generator'
 import { upcomingMemories, buildDigest, digestDue, markDigestShown, type Digest } from '../services/digest'
+import { redactForPreview } from '../services/secrets'
 import { Icon } from './icons'
 import { MemoryCard } from './MemoryCard'
 
 function labelOf(m: Memory): string {
-  return m.text || m.caption || m.extractedText?.slice(0, 60) || m.type
+  const raw = m.text || m.caption || m.extractedText?.slice(0, 60) || m.type
+  return redactForPreview(raw)
 }
 
 function fmtUpcoming(ts: number): string {
@@ -40,12 +42,14 @@ export function HomeTab({
   pinnedCategories,
   userName,
   onEnableLlm,
+  onOpenMemory,
 }: {
   memories: Memory[]
   onChanged: () => void
   pinnedCategories: string[]
   userName: string
   onEnableLlm: () => void
+  onOpenMemory: (memory: Memory) => void
 }) {
   const [filter, setFilter] = useState<string | null>(null)
   const [input, setInput] = useState('')
@@ -260,7 +264,12 @@ export function HomeTab({
           </div>
           <div className="home-hscroll">
             {upcoming.slice(0, 5).map((m) => (
-              <div key={m.id} className="home-hcard">
+              <button
+                key={m.id}
+                type="button"
+                className="home-hcard"
+                onClick={() => onOpenMemory(m)}
+              >
                 <div className="home-tile-icon">
                   <Icon name={iconForCategory(m.category || 'General')} />
                 </div>
@@ -268,7 +277,7 @@ export function HomeTab({
                   <div className="home-tile-title">{labelOf(m)}</div>
                   <div className="home-tile-sub">{fmtUpcoming(m.eventDate!)}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </>
@@ -309,7 +318,12 @@ export function HomeTab({
           </div>
           <div className="home-hscroll">
             {recentThings.map((m) => (
-              <div key={m.id} className="home-hcard">
+              <button
+                key={m.id}
+                type="button"
+                className="home-hcard"
+                onClick={() => onOpenMemory(m)}
+              >
                 <div className="home-tile-icon">
                   <Icon name={iconForCategory(m.category || 'General')} />
                 </div>
@@ -317,7 +331,7 @@ export function HomeTab({
                   <div className="home-tile-title">{labelOf(m)}</div>
                   <div className="home-tile-sub">{m.category || 'General'}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </>

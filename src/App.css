@@ -29,7 +29,6 @@
   animation: tabIn var(--dur-base) var(--ease) both;
 }
 
-.home-entry-card,
 .home-tile,
 .home-hcard,
 .memory-card,
@@ -186,7 +185,7 @@ button:active:not(:disabled),
 .home-hcard {
   flex: 0 0 auto;
   width: 210px;
-  cursor: default;
+  cursor: pointer;
 }
 
 
@@ -900,6 +899,14 @@ img.memory-media {
     align-self: center;
   }
 
+  button.sync-code-text {
+    padding: 0;
+    background: none;
+    align-self: auto;
+    text-align: left;
+    color: inherit;
+  }
+
   progress {
     width: 100%;
   }
@@ -1054,4 +1061,105 @@ img.memory-media {
 .toggle-switch input:focus-visible + .toggle-track {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.memory-card.clickable {
+  cursor: pointer;
+}
+
+.secret-span {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--accent-bg);
+  border: none;
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: inherit;
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+.memory-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn var(--dur-fast) var(--ease) both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.memory-detail {
+  background: var(--bg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 92svh;
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  animation: slideUp var(--dur-base) var(--ease) both;
+
+  p {
+    margin: 0 0 8px;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+.memory-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+
+  .icon-btn-inline {
+    transform: rotate(45deg);
+    opacity: 1;
+  }
+}
+
+.memory-detail-text {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.memory-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+
+  button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 15px;
+
+    &.secondary {
+      background: none;
+      border: 1px solid var(--border-strong);
+    }
+
+    &.danger {
+      background: #e5484d;
+      color: #fff;
+    }
+  }
 }

@@ -12,6 +12,7 @@ import { HomeTab } from './components/HomeTab'
 import { BrainTab } from './components/BrainTab'
 import { SettingsTab } from './components/SettingsTab'
 import { LockScreen } from './components/LockScreen'
+import { MemoryDetail } from './components/MemoryDetail'
 import './App.css'
 
 const ICON_SETTINGS = `${import.meta.env.BASE_URL}icon-settings.png`
@@ -33,7 +34,9 @@ function App() {
   )
   const [loadProgress, setLoadProgress] = useState<LoadProgress | null>(null)
   const [locked, setLocked] = useState(() => isLockEnabled())
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const hiddenAt = useRef<number | null>(null)
+  const viewingMemory = viewingId ? memories.find((m) => m.id === viewingId) ?? null : null
 
   const refresh = useCallback(async () => {
     setMemories(await listMemories())
@@ -127,6 +130,7 @@ function App() {
           pinnedCategories={pinnedCategories}
           userName={userName}
           onEnableLlm={startEngine}
+          onOpenMemory={(m) => setViewingId(m.id)}
         />
       )}
       {tab === 'brain' && (
@@ -135,6 +139,7 @@ function App() {
           onChanged={refresh}
           pinnedCategories={pinnedCategories}
           onTogglePin={handleTogglePin}
+          onOpenMemory={(m) => setViewingId(m.id)}
         />
       )}
       {tab === 'settings' && (
@@ -149,6 +154,10 @@ function App() {
           loadProgress={loadProgress}
           onEnableLlm={startEngine}
         />
+      )}
+
+      {viewingMemory && (
+        <MemoryDetail memory={viewingMemory} onClose={() => setViewingId(null)} onChanged={refresh} />
       )}
     </div>
   )

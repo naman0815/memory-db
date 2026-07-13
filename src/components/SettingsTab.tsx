@@ -75,6 +75,13 @@ export function SettingsTab({
     setStatus('Linked. Tap "Restore from backup" to pull in memories from your other device.')
   }
 
+  function handleCopyCode() {
+    if (!syncCode) return
+    navigator.clipboard.writeText(syncCode).then(() => {
+      setStatus('Sync code copied to clipboard.')
+    })
+  }
+
   function handleTurnOffBackup() {
     clearSyncCode()
     onSyncCodeChange(null)
@@ -217,7 +224,14 @@ export function SettingsTab({
             </p>
           )}
           <div className="sync-code-row">
-            <span className="sync-code-text">{revealCode ? syncCode : '•'.repeat(syncCode.length)}</span>
+            <button
+              type="button"
+              className="sync-code-text"
+              aria-label="Copy sync code to clipboard"
+              onClick={handleCopyCode}
+            >
+              {revealCode ? syncCode : '•'.repeat(syncCode.length)}
+            </button>
             <button
               type="button"
               className="icon-btn-inline"

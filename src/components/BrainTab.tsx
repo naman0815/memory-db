@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import type { Memory, MemoryType } from '../types'
-import { deleteMemory, updateMemoryText } from '../services/memories'
+import type { Memory } from '../types'
+import { deleteMemory } from '../services/memories'
 import { flushOutbox } from '../services/sync'
 import { iconForCategory } from '../services/categoryIcon'
 import { Icon } from './icons'
@@ -13,13 +13,14 @@ export function BrainTab({
   onChanged,
   pinnedCategories,
   onTogglePin,
+  onOpenMemory,
 }: {
   memories: Memory[]
   onChanged: () => void
   pinnedCategories: string[]
   onTogglePin: (category: string) => void
+  onOpenMemory: (memory: Memory) => void
 }) {
-  const [typeFilter, setTypeFilter] = useState<MemoryType | 'all'>('all')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
 
@@ -38,14 +39,9 @@ export function BrainTab({
     [byCategory],
   )
 
-  const types = useMemo(() => [...new Set(memories.map((m) => m.type))], [memories])
-  const tags = useMemo(() => [...new Set(memories.flatMap((m) => m.tags ?? []))].sort(), [memories])
-
   const filtered = memories.filter(
     (m) =>
-      (typeFilter === 'all' || m.type === typeFilter) &&
-      (!tagFilter || m.tags?.includes(tagFilter)) &&
-      (!categoryFilter || (m.category || 'General') === categoryFilter),
+      (!tagFilter || m.tags?.includes(tagFilter)) && (!categoryFilter || (m.category || 'General') === categoryFilter),
   )
 
   const byDay = useMemo(() => {
@@ -66,11 +62,6 @@ export function BrainTab({
   async function handleDelete(id: string) {
     await deleteMemory(id)
     onChanged()
-    void flushOutbox()
-  }
-
-  async function handleEdit(id: string, text: string) {
-    await updateMemoryText(id, text, onChanged)
     void flushOutbox()
   }
 
@@ -117,32 +108,7 @@ export function BrainTab({
         </>
       )}
 
-      <div className="tabs" style={{ flexWrap: 'wrap', marginTop: 20 }}>
-        <button className={typeFilter === 'all' ? 'active' : ''} onClick={() => setTypeFilter('all')}>
-          all
-        </button>
-        {types.map((t) => (
-          <button key={t} className={typeFilter === t ? 'active' : ''} onClick={() => setTypeFilter(t)}>
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {tags.length > 0 && (
-        <div className="tags" style={{ margin: '10px 0' }}>
-          {tags.slice(0, 20).map((t) => (
-            <button
-              key={t}
-              className={`tag linkish ${tagFilter === t ? 'active' : ''}`}
-              onClick={() => setTagFilter(tagFilter === t ? null : t)}
-            >
-              #{t}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <section className="memory-list">
+      <section className="memory-list" style={{ marginTop: 20 }}>
         {byDay.map(([day, items]) => (
           <div key={day}>
             <h2>{day}</h2>
@@ -151,7 +117,7 @@ export function BrainTab({
                 key={m.id}
                 memory={m}
                 onDelete={handleDelete}
-                onEdit={handleEdit}
+                onOpen={onOpenMemory}
                 onTagClick={(t) => setTagFilter(tagFilter === t ? null : t)}
               />
             ))}
