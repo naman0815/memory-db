@@ -160,7 +160,9 @@ button:active:not(:disabled),
 
 .home-tile-title {
   font-size: 16px;
-  line-height: 1.15;
+  /* 1.3, not 1.15 — EB Garamond's descenders (g, y, p, j) were getting
+     clipped by overflow:hidden at the tighter line-height. */
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -422,7 +424,10 @@ header {
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  padding: 14px;
+  /* Right padding clears the 44px pin button (.brain-pin-btn), which sits
+     absolutely positioned over this corner and would otherwise overlap a
+     long category name. */
+  padding: 14px 48px 14px 14px;
   border: none;
   background: none;
   font-family: var(--serif);
@@ -756,7 +761,10 @@ img.memory-media {
   }
 
   .memory-meta:first-child {
-    padding-right: 26px;
+    /* Was 26px, sized for the old ~21px card-delete button — the touch-
+       target fix enlarged that button to 44px without updating this
+       clearance, so the eventDate/score text ran under the delete icon. */
+    padding-right: 48px;
   }
 }
 
