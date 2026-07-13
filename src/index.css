@@ -22,7 +22,7 @@
   --icon-color: #de7356;
   --shadow: 0 10px 30px rgba(30, 25, 15, 0.14);
 
-  --serif: 'Newsreader', serif;
+  --serif: 'EB Garamond', serif;
   --mono: ui-monospace, Consolas, monospace;
 
   /* One motion scale, reused everywhere so nothing feels snappier or
