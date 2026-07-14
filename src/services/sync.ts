@@ -1,4 +1,5 @@
 import { storage } from './storage'
+import { uuid } from './memories'
 import type { Memory } from '../types'
 
 const SYNC_CODE_KEY = 'sync-code'
@@ -87,6 +88,22 @@ export async function flushOutbox(): Promise<void> {
   } finally {
     flushing = false
   }
+}
+
+/**
+ * Enqueues every existing local memory for push — needed the moment backup
+ * is turned on. Without this, "Turn on backup" only affected memories saved
+ * or edited from that point forward (saveMemory/updateMemory* are the only
+ * places that normally call enqueueOutbox), so everything already in the
+ * app before backup was enabled silently never made it to the server —
+ * restoring on another device then pulled back little or nothing.
+ */
+export async function enqueueAllForSync(): Promise<number> {
+  const memories = await storage.getAllMemories()
+  for (const memory of memories) {
+    await storage.enqueueOutbox({ id: uuid(), memoryId: memory.id, op: 'upsert', attempts: 0 })
+  }
+  return memories.length
 }
 
 /** Pull all backed-up memories into the local store (embeddings recomputed locally). */

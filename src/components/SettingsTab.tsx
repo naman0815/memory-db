@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { syncConfigured, generateSyncCode, setSyncCode, clearSyncCode, restoreFromCloud } from '../services/sync'
+import {
+  syncConfigured,
+  generateSyncCode,
+  setSyncCode,
+  clearSyncCode,
+  restoreFromCloud,
+  enqueueAllForSync,
+  flushOutbox,
+} from '../services/sync'
 import { embedPending } from '../services/retriever'
 import { isLockEnabled, isBiometricAvailable, enableLock, disableLock } from '../services/auth'
 import { isWebGPUSupported, hasOptedIn, setOptedIn, type LoadProgress } from '../services/generator'
@@ -65,19 +73,32 @@ export function SettingsTab({
     }
   }
 
-  function handleEnableBackup() {
+  async function handleEnableBackup() {
     const code = generateSyncCode()
     setNewCode(code)
     setRevealCode(true)
     onSyncCodeChange(code)
+    setStatus({ text: 'Backing up your existing memories…' })
+    const count = await enqueueAllForSync()
+    await flushOutbox()
+    setStatus({ text: count > 0 ? `Backup on — ${count} existing memories backed up.` : 'Backup is on.' })
   }
 
-  function handleLinkDevice() {
+  async function handleLinkDevice() {
     if (!enteredCode.trim()) return
-    setSyncCode(enteredCode.trim())
-    onSyncCodeChange(enteredCode.trim())
+    // Sync codes are opaque hex tokens, not meant to be typed by hand —
+    // trim whitespace only; a stray uppercase letter from mobile
+    // autocapitalize would hash to a completely different (wrong) key on
+    // the server and silently match zero rows, which is exactly what a
+    // "the code didn't pull anything" report looks like.
+    const code = enteredCode.trim().toLowerCase()
+    setSyncCode(code)
+    onSyncCodeChange(code)
     setEnteredCode('')
     setStatus({ text: 'Linked. Tap "Restore from backup" to pull in memories from your other device.' })
+    const count = await enqueueAllForSync()
+    await flushOutbox()
+    if (count > 0) setStatus({ text: `Linked — ${count} memories from this device were also backed up.` })
   }
 
   function handleCopyCode() {
