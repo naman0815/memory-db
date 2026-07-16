@@ -21,7 +21,12 @@ import { redactForPreview } from '../services/secrets'
 import { Icon } from './icons'
 
 function labelOf(m: Memory): string {
-  const raw = m.text || m.caption || m.extractedText?.slice(0, 60) || m.type
+  // caption is the dedicated, user-editable Title (see MemoryDetail's Title
+  // field) — it should win over raw body text whenever it's set, not just
+  // serve as a fallback. A memory with both a title and a text body was
+  // showing the text snippet on its tile instead of the title someone
+  // deliberately set.
+  const raw = m.caption || m.text || m.extractedText?.slice(0, 60) || m.type
   return redactForPreview(raw)
 }
 

@@ -185,7 +185,7 @@ export function MemoryCard({
           {related.length === 0 && <p className="empty">No related memories.</p>}
           {related.map((r) => (
             <p key={r.memory.id} className="related-item">
-              ↳ {r.memory.text || r.memory.caption || r.memory.extractedText?.slice(0, 60) || r.memory.type}
+              ↳ {r.memory.caption || r.memory.text || r.memory.extractedText?.slice(0, 60) || r.memory.type}
             </p>
           ))}
         </div>

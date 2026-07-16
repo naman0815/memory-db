@@ -213,12 +213,17 @@ a:focus-visible {
   overflow-x: auto;
   padding-bottom: 4px;
   box-sizing: border-box;
+  /* Without this, scrolling (trackpad, drag, or a browser's own momentum)
+     can settle anywhere — including mid-card, cropping it on both edges
+     at once. Snapping always lands on a full card. */
+  scroll-snap-type: x proximity;
 }
 
 .home-hcard {
   flex: 0 0 auto;
   width: 210px;
   cursor: pointer;
+  scroll-snap-align: start;
 }
 
 
